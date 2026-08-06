@@ -1,6 +1,6 @@
 <div align="center">
 
-# 📰 每日早报插件 v1.2.0
+# 📰 每日早报插件 v1.3.0
 
 > 每天定时采集新闻、科技热点、行情财经、影视动漫等数据，渲染为精美长图推送至 QQ 群
 
@@ -90,7 +90,7 @@ git clone https://github.com/Blackwindy2333/DailyMorningReport.git
 | | `anime_enabled` / `movie_enabled` / `game_enabled` | 新番 / 电影 / 游戏 | 开 |
 | | `ai_quota_enabled` | AI 额度（私聊/公开） | 开 |
 | | `ai_quota_public` | AI 额度公开进群（开启后不再私发管理员） | 关 |
-| **AI 额度** | `ai_quota.<provider>.enabled` / `.api_key` | 各厂商开关与 API Key（留空跳过该家） | 开 / 空 |
+| **AI 额度** | `ai_quota.openrouter` / `deepseek` / `kimi` / `siliconflow` | 各厂商 API Key（留空跳过该家） | 空 |
 | **外部 API Key** | `exchangerate_api_key` | ExchangeRate-API Key（可留空，免费端点免 key） | 空 |
 | | `rawg_api_key` | RAWG Key（游戏发售模块） | 空 |
 | | `tmdb_api_key` | TMDB Key（豆瓣反爬时的电影降级源，可留空） | 空 |
@@ -177,7 +177,7 @@ DailyMorningReport/
 | `/dmr reset <键>` | 恢复该配置项默认值 |
 | `/dmr push` | 立即推送一次早报 |
 
-> 注意：`/dmr` 对配置的修改**仅运行时生效**，重启后恢复 WebUI / config.toml 中的配置值；含 `api_key`/`token`/`secret` 的字段不允许通过命令修改，请到 WebUI 设置。
+> 注意：`/dmr` 对配置的修改**仅运行时生效**，重启后恢复 WebUI / config.toml 中的配置值；AI 额度 key 与含 `api_key`/`token`/`secret` 的字段不允许通过命令修改，请到 WebUI 设置。
 
 ### 权限与能力
 
@@ -245,6 +245,14 @@ DailyMorningReport/
 <details>
 <summary>点击展开版本历史</summary>
 
+### 版本 1.3.0
+
+**行为调整**
+- AI 额度配置简化为平铺 API Key：`ai_quota.<provider>` 直接填写 key 字符串（如 `ai_quota.deepseek = "sk-..."`），空即跳过该厂商；移除 `enabled` 开关与嵌套结构
+- `/dmr` 敏感字段保护覆盖 `ai_quota.*`：AI 额度 key 不允许通过命令查看/修改，请到 WebUI 填写
+
+> **升级提示**：从 1.2.0 升级时，若旧配置仍为嵌套结构（`[ai_quota.xxx]` 下的 `enabled`/`api_key`），请将四家厂商改为平铺 key 字符串，或删除后在 WebUI 表单中重新填写。
+
 ### 版本 1.2.0
 
 **新功能**
@@ -302,6 +310,6 @@ MIT
 
 **如果这个插件对你有帮助，请点亮 ⭐ 支持一下！**
 
-[⬆ 返回顶部](#-每日早报插件-v120)
+[⬆ 返回顶部](#-每日早报插件-v130)
 
 </div>
