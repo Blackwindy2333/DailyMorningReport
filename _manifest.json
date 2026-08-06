@@ -1,0 +1,50 @@
+{
+  "manifest_version": 2,
+  "id": "com.maibot.daily-morning-report",
+  "version": "1.0.0",
+  "name": "每日早报",
+  "description": "每日定时采集新闻、科技热点、硬件价格、汇率、AI额度、油价金价、影视动漫、游戏发售等数据，渲染为精美图片推送至QQ群。",
+  "author": {
+    "name": "BlackBee114514",
+    "url": "https://github.com/Blackwindy2333"
+  },
+  "license": "MIT",
+  "urls": {
+    "repository": "https://github.com/Blackwindy2333/DailyMorningReport",
+    "issues": "https://github.com/Blackwindy2333/DailyMorningReport/issues"
+  },
+  "host_application": {
+    "min_version": "1.0.0",
+    "max_version": "1.99.99"
+  },
+  "sdk": {
+    "min_version": "2.6.0",
+    "max_version": "2.99.99"
+  },
+  "plugin_type": "data",
+  "display": {
+    "icon": {
+      "type": "lucide",
+      "value": "newspaper",
+      "fallback": "package",
+      "background": "#1f2937"
+    }
+  },
+  "dependencies": [
+    {
+      "type": "python_package",
+      "name": "httpx",
+      "version_spec": ">=0.24.0"
+    },
+    {
+      "type": "python_package",
+      "name": "beautifulsoup4",
+      "version_spec": ">=4.12.0"
+    }
+  ],
+  "capabilities": ["send.image", "send.text"],
+  "i18n": {
+    "default_locale": "zh-CN",
+    "supported_locales": ["zh-CN"]
+  }
+}
