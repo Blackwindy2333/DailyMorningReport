@@ -28,7 +28,7 @@ def strip_prefix(text: str, prefix: str) -> str | None:
         return None
     if not lowered_text.lower().startswith(lowered_prefix):
         return None
-    rest = lowered_text[len(lowered_prefix):]
+    rest = lowered_text[len(lowered_prefix) :]
     if rest and not rest[0].isspace():
         return None
     return rest.strip()
