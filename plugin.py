@@ -122,7 +122,7 @@ class DailyMorningReportPlugin(MaiBotPlugin):
         return bool(getattr(self.config.modules, field))
 
     def _enabled_group_modules(self, group_modules: tuple[str, ...]) -> set[str]:
-        """组内启用的模块集合（同时受组开关与模块开关约束）。"""
+        """组内启用的模块集合（执行时按模块开关推导，决定组是否渲染）。"""
         return {module_id for module_id in group_modules if self._module_enabled(module_id)}
 
     def _build_collectors(self) -> list[Any]:
@@ -221,9 +221,18 @@ class DailyMorningReportPlugin(MaiBotPlugin):
             if ok > 0:
                 pushed_groups += 1
             self.ctx.logger.info("[run=%s] 群 %s 推送完成: %d/%d", run_id, group_id, ok, total)
-        if self.config.basic.admin_qq and private_images:
+        if self.config.basic.admin_qqs and private_images:
+            pushed_private = 0
             for image in private_images:
-                await self._pusher.push_private_image(image, self.config.basic.admin_qq)
+                for admin_qq in self.config.basic.admin_qqs:
+                    if await self._pusher.push_private_image(image, admin_qq):
+                        pushed_private += 1
+            self.ctx.logger.info(
+                "[run=%s] 管理员私聊推送完成: %d/%d",
+                run_id,
+                pushed_private,
+                len(private_images) * len(self.config.basic.admin_qqs),
+            )
 
         # 4. 存档（早报历史）
         self._archive.save(results)
@@ -244,67 +253,63 @@ class DailyMorningReportPlugin(MaiBotPlugin):
     async def _render(self, results: dict[str, CollectorResult]) -> dict[str, list[str]]:
         """渲染 3 组群图 + AI 额度私聊图。
 
-        整图跳过：某组所有模块均被禁用时，该组不渲染不推送。
+        整图跳过：组内所有模块均被禁用时，该组不渲染不推送（执行时按模块开关推导，无设置项控制）。
         """
         cfg = self.config
-        groups = cfg.groups
         images: dict[str, list[str]] = {"groups": [], "private": []}
 
         # 组 1：资讯速览（节日提醒 + 新闻 + 科技）
-        if groups.group1_enabled:
-            enabled = self._enabled_group_modules(_GROUP1_MODULES)
-            if enabled:  # 组内至少一个模块启用才渲染
-                html = render_group1(
-                    results.get("news", self._missing("news")),
-                    results.get("tech", self._missing("tech")),
-                    results.get("holiday", self._missing("holiday")),
-                    enabled,
-                    cfg,
-                )
-                images["groups"].append(await self._render_image(html, "group1"))
-            else:
-                self.ctx.logger.info("组 1 全部模块已禁用，跳过该组渲染")
+        enabled = self._enabled_group_modules(_GROUP1_MODULES)
+        if enabled:  # 组内至少一个模块启用才渲染
+            html = render_group1(
+                results.get("news", self._missing("news")),
+                results.get("tech", self._missing("tech")),
+                results.get("holiday", self._missing("holiday")),
+                enabled,
+                cfg,
+            )
+            images["groups"].append(await self._render_image(html, "group1"))
+        else:
+            self.ctx.logger.info("组 1 全部模块已禁用，跳过该组渲染")
 
         # 组 2：行情财经（汇率 + 油价 + 金价 + DRAM + 公开 AI 额度 + 昨日 AI 消费）
-        if groups.group2_enabled:
-            enabled = self._enabled_group_modules(_GROUP2_MODULES)
-            if groups.ai_quota_public and self._module_enabled("ai_quota"):
-                enabled.add("ai_quota")
-            if enabled:
-                ai_quota_public = results.get("ai_quota") if "ai_quota" in enabled else None
-                html = render_group2(
-                    results.get("fx", self._missing("fx")),
-                    results.get("fuel", self._missing("fuel")),
-                    results.get("gold", self._missing("gold")),
-                    results.get("dram", self._missing("dram")),
-                    ai_quota_public,
-                    results.get("ai_usage", self._missing("ai_usage")),
-                    enabled,
-                    cfg,
-                )
-                images["groups"].append(await self._render_image(html, "group2"))
-            else:
-                self.ctx.logger.info("组 2 全部模块已禁用，跳过该组渲染")
+        enabled = self._enabled_group_modules(_GROUP2_MODULES)
+        if cfg.modules.ai_quota_public and self._module_enabled("ai_quota"):
+            enabled.add("ai_quota")
+        if enabled:
+            ai_quota_public = results.get("ai_quota") if "ai_quota" in enabled else None
+            html = render_group2(
+                results.get("fx", self._missing("fx")),
+                results.get("fuel", self._missing("fuel")),
+                results.get("gold", self._missing("gold")),
+                results.get("dram", self._missing("dram")),
+                ai_quota_public,
+                results.get("ai_usage", self._missing("ai_usage")),
+                enabled,
+                cfg,
+            )
+            images["groups"].append(await self._render_image(html, "group2"))
+        else:
+            self.ctx.logger.info("组 2 全部模块已禁用，跳过该组渲染")
 
         # 组 3：文娱生活（新番 + 电影 + 游戏，封面下载内嵌）
-        if groups.group3_enabled:
-            enabled = self._enabled_group_modules(_GROUP3_MODULES)
-            if enabled:
-                covers = await self._collect_covers(results)
-                html = render_group3(
-                    results.get("anime", self._missing("anime")),
-                    results.get("movie", self._missing("movie")),
-                    results.get("game", self._missing("game")),
-                    covers,
-                    enabled,
-                    cfg,
-                )
-                images["groups"].append(await self._render_image(html, "group3"))
-            else:
-                self.ctx.logger.info("组 3 全部模块已禁用，跳过该组渲染")
+        enabled = self._enabled_group_modules(_GROUP3_MODULES)
+        if enabled:
+            covers = await self._collect_covers(results)
+            html = render_group3(
+                results.get("anime", self._missing("anime")),
+                results.get("movie", self._missing("movie")),
+                results.get("game", self._missing("game")),
+                covers,
+                enabled,
+                cfg,
+            )
+            images["groups"].append(await self._render_image(html, "group3"))
+        else:
+            self.ctx.logger.info("组 3 全部模块已禁用，跳过该组渲染")
 
         # AI 额度私聊图（默认仅私发管理员；公开进群后不再重复私发）
-        if self.config.basic.admin_qq and not groups.ai_quota_public and self._module_enabled("ai_quota"):
+        if self.config.basic.admin_qqs and not cfg.modules.ai_quota_public and self._module_enabled("ai_quota"):
             ai_quota = results.get("ai_quota")
             if ai_quota is not None and ai_quota.status == "ok":
                 html = render_ai_quota_private(ai_quota, cfg)
