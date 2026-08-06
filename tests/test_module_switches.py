@@ -174,6 +174,22 @@ async def test_ai_quota_public_requires_switch() -> None:
     assert len(plugin._ctx.render.calls) == 3
 
 
+@pytest.mark.asyncio
+async def test_group2_renders_when_quota_public_alone() -> None:
+    """组 2 基础模块全禁用但 ai_quota_public=true → 组 2 仍渲染（仅额度卡）。"""
+    config = DailyMorningReportConfig()
+    config.modules.fx_enabled = False
+    config.modules.fuel_enabled = False
+    config.modules.gold_enabled = False
+    config.modules.dram_enabled = False
+    config.modules.ai_usage_enabled = False
+    config.modules.ai_quota_public = True
+    plugin = _make_plugin_with_render(config)
+    images = await plugin._render(_all_results())
+    assert len(images["groups"]) == 3  # 组 1 + 组 2（额度卡）+ 组 3
+    assert len(plugin._ctx.render.calls) == 3
+
+
 def test_group_mapping_consistency() -> None:
     """三组模块集合互不重叠且覆盖全部映射。"""
     all_group_modules = set(_GROUP1_MODULES) | set(_GROUP2_MODULES) | set(_GROUP3_MODULES)
