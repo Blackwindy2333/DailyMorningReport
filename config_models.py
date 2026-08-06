@@ -100,6 +100,10 @@ class RenderSection(PluginConfigBase):
         default_factory=lambda: ["USD", "EUR", "JPY", "HKD", "GBP"],
         description="汇率展示币种列表（ISO 代码）",
     )
+    fuel_regions: List[str] = Field(
+        default_factory=lambda: ["北京"],
+        description="油价展示地区列表（支持任意地区名，如 广东/上海）",
+    )
 
 
 class DailyMorningReportConfig(PluginConfigBase):

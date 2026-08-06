@@ -197,9 +197,51 @@ async def test_fuel_parse(config, mock_logger) -> None:
     _install(collector, json_resp=VIKI_FUEL)
     result = await collector.collect()
     assert result.status == "ok"
-    assert result.data["region"] == "北京"
-    assert result.data["items"][0] == {"name": "92#汽油", "price": 7.97}
+    assert result.data["regions"][0]["region"] == "北京"
+    assert result.data["regions"][0]["items"][0] == {"name": "92#汽油", "price": 7.97}
     assert result.data["trend"]["direction"] == "下调"
+
+
+@pytest.mark.asyncio
+async def test_fuel_multi_region(config, mock_logger) -> None:
+    """多地区配置时按 region 参数分别查询。"""
+    config.render.fuel_regions = ["北京", "广东"]
+    collector = FuelCollector(config, mock_logger)
+    seen_regions = []
+
+    async def fake_json(url, **kwargs):
+        del url
+        region = kwargs.get("params", {}).get("region", "")
+        seen_regions.append(region)
+        return {"code": 200, "data": {"region": region, "items": [{"name": "92#汽油", "price": 7.99}]}}
+
+    collector.fetch_json = fake_json  # type: ignore[method-assign]
+    result = await collector.collect()
+    assert result.status == "ok"
+    assert seen_regions == ["北京", "广东"]
+    assert len(result.data["regions"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_fuel_region_failure_isolated(config, mock_logger) -> None:
+    """单地区失败不影响其他地区。"""
+    config.render.fuel_regions = ["北京", "广东"]
+    from DailyMorningReport.collectors.base import CollectorError as CE
+
+    collector = FuelCollector(config, mock_logger)
+
+    async def fake_json(url, **kwargs):
+        del url
+        region = kwargs.get("params", {}).get("region", "")
+        if region == "广东":
+            raise CE("HTTP 503")
+        return {"code": 200, "data": {"region": region, "items": [{"name": "92#", "price": 7.0}]}}
+
+    collector.fetch_json = fake_json  # type: ignore[method-assign]
+    result = await collector.collect()
+    assert result.status == "ok"
+    assert len(result.data["regions"]) == 1
+    assert result.data["regions"][0]["region"] == "北京"
 
 
 @pytest.mark.asyncio

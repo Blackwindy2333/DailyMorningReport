@@ -47,20 +47,22 @@ def render_page(
     padding: 20px 16px 28px;
   }}
   .header {{
-    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 55%, #3b82f6 100%);
     border-radius: 16px;
     color: #ffffff;
-    padding: 22px 24px;
-    margin-bottom: 14px;
+    padding: 24px 26px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.18);
   }}
-  .header h1 {{ font-size: 26px; font-weight: 700; }}
-  .header p {{ font-size: 13px; opacity: 0.85; margin-top: 6px; }}
+  .header h1 {{ font-size: 27px; font-weight: 800; letter-spacing: 0.5px; }}
+  .header p {{ font-size: 13px; opacity: 0.9; margin-top: 7px; }}
   .card {{
     background: #ffffff;
-    border-radius: 14px;
-    padding: 16px 18px;
-    margin-bottom: 14px;
-    box-shadow: 0 2px 8px rgba(31, 41, 55, 0.06);
+    border-radius: 16px;
+    padding: 18px 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 10px rgba(31, 41, 55, 0.07);
+    border: 1px solid #f1f5f9;
   }}
   .card h2 {{
     font-size: 18px;
@@ -69,14 +71,17 @@ def render_page(
     padding-bottom: 10px;
     margin-bottom: 12px;
     border-bottom: 2px solid #e5e7eb;
+    display: flex;
+    align-items: baseline;
   }}
-  .card h2 .time {{ font-size: 12px; font-weight: 400; color: #9ca3af; margin-left: 8px; }}
+  .card h2 .time {{ font-size: 12px; font-weight: 400; color: #9ca3af; margin-left: auto; }}
+  .sub-title {{ font-size: 13px; font-weight: 600; color: #374151; margin: 12px 0 4px; }}
   .error-card {{
     background: #fff7ed;
     border: 1px solid #fdba74;
-    border-radius: 14px;
+    border-radius: 16px;
     padding: 16px 18px;
-    margin-bottom: 14px;
+    margin-bottom: 16px;
   }}
   .error-card h2 {{ color: #c2410c; font-size: 16px; margin-bottom: 8px; }}
   .error-card p {{ color: #9a3412; font-size: 13px; }}
@@ -210,22 +215,28 @@ def fx_card(result: CollectorResult) -> str:
 
 
 def fuel_card(result: CollectorResult) -> str:
-    """油价卡片。"""
+    """油价卡片（多地区）。"""
     if result.status == "error":
         return error_card(result.module_id, "油价", result.error_msg)
-    rows = "".join(
-        f'    <tr><td>{_esc(item["name"])}</td><td class="num">{_num(item["price"])} 元/升</td></tr>'
-        for item in result.data.get("items", [])
-    )
+    regions = result.data.get("regions") or []
+    blocks = []
+    for region in regions:
+        rows = "".join(
+            f'    <tr><td>{_esc(item["name"])}</td><td class="num">{_num(item["price"])} 元/升</td></tr>'
+            for item in region.get("items", [])
+        )
+        blocks.append(
+            f"""    <div class="sub-title">📍 {_esc(region.get("region") or "")}</div>
+    <table>
+      <tr><th>油品</th><th class="num">价格</th></tr>
+{rows}
+    </table>"""
+        )
     trend = result.data.get("trend") or {}
     trend_desc = trend.get("description") or ""
     trend_html = f'    <div class="tip">⛽ {_esc(trend_desc)}</div>' if trend_desc else ""
-    inner = f"""    <table>
-      <tr><th>油品</th><th class="num">价格</th></tr>
-{rows}
-    </table>
-{trend_html}"""
-    return card_wrapper(result.module_id, f"油价（{_esc(result.data.get('region') or '')}）", result.fetched_at, inner)
+    inner = "\n".join(blocks) + ("\n" + trend_html if trend_html else "")
+    return card_wrapper(result.module_id, "油价", result.fetched_at, inner)
 
 
 def gold_card(result: CollectorResult) -> str:

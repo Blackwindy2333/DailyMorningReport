@@ -196,7 +196,7 @@ def test_render_group1_with_holiday(config) -> None:
 
 def test_render_group2_with_public_quota(config) -> None:
     fx = _ok("fx", {"rates": [{"code": "USD", "rate": 0.1}]})
-    fuel = _ok("fuel", {"region": "北京", "items": [{"name": "92#", "price": 7.97}], "trend": {}})
+    fuel = _ok("fuel", {"regions": [{"region": "北京", "items": [{"name": "92#", "price": 7.97}]}], "trend": {}})
     gold = _ok("gold", {"metals": [{"name": "黄金", "price": 900, "unit": "元/克"}]})
     dram = _ok("dram", {"items": [{"name": "DDR5", "high": 1, "low": 1, "avg": 1, "change": 0}]})
     quota = _ok("ai_quota", {"quotas": [{"provider": "Kimi", "balance": 1.0, "currency": "CNY", "note": ""}]})
@@ -242,4 +242,50 @@ async def test_cover_manager_missing_cache(tmp_path, mock_logger) -> None:
 
     manager = CoverManager(tmp_path, mock_logger, timeout=2.0)
     assert manager.load_base64("https://example.com/x.jpg") is None
+    await manager.close()
+
+
+@pytest.mark.asyncio
+async def test_cover_manager_download_and_cache(tmp_path, mock_logger) -> None:
+    """封面下载后缓存命中（懒加载：第二次不请求网络）。"""
+    import httpx
+
+    from DailyMorningReport.render.covers import CoverManager
+
+    calls = {"n": 0}
+    url = "https://img.example.com/poster1.jpg"
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        del request
+        calls["n"] += 1
+        # 最小合法 PNG 头
+        return httpx.Response(200, content=b"\x89PNG\r\n\x1a\nfake-image-data", headers={"content-type": "image/png"})
+
+    manager = CoverManager(tmp_path, mock_logger, timeout=3.0)
+    manager._client = httpx.AsyncClient(transport=httpx.MockTransport(handler), timeout=3.0)
+
+    first = await manager.ensure_cover(url)
+    second = await manager.ensure_cover(url)
+    assert first is not None
+    assert first.startswith("data:image/png;base64,")
+    assert second == first  # 命中缓存
+    assert calls["n"] == 1  # 只下载一次
+    await manager.close()
+
+
+@pytest.mark.asyncio
+async def test_cover_manager_download_failure_placeholder(tmp_path, mock_logger) -> None:
+    """下载失败返回 None（渲染层用占位），不影响整体。"""
+    import httpx
+
+    from DailyMorningReport.render.covers import CoverManager
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        del request
+        return httpx.Response(404)
+
+    manager = CoverManager(tmp_path, mock_logger, timeout=3.0)
+    manager._client = httpx.AsyncClient(transport=httpx.MockTransport(handler), timeout=3.0)
+    result = await manager.ensure_cover("https://img.example.com/missing.jpg")
+    assert result is None
     await manager.close()
