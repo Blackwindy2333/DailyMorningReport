@@ -2,16 +2,14 @@
 
 使用 ctx.statistics.local.token_trend(days=2, bucket="day", group_by="model")：
 返回按日分桶的模型 token 趋势，可精确提取"昨日"的数据。
-响应结构（主程序 src/plugin_runtime/capabilities/data.py 确认）：
+注意：SDK 会解包 Host 返回的 series 键（maibot_sdk/context.py _normalize_capability_result），
+插件直接收到解包后的结构：
 {
-  "success": true,
-  "series": {
-    "timestamps": ["2026-08-05 00:00:00", "2026-08-06 00:00:00"],   # 按日分桶
-    "values_by_key": {"gpt_4o": [150.0, 0.0], ...},                  # 每个模型：按 timestamps 顺序的 total_tokens
-    "labels_by_key": {"gpt_4o": "gpt-4o"},                            # key -> 模型名
-    "total": 150.0,
-    "source_count": 2
-  }
+  "timestamps": ["2026-08-05 00:00:00", "2026-08-06 00:00:00"],   # 按日分桶
+  "values_by_key": {"gpt_4o": [150.0, 0.0], ...},                  # 每个模型：按 timestamps 顺序的 total_tokens
+  "labels_by_key": {"gpt_4o": "gpt-4o"},                            # key -> 模型名
+  "total": 150.0,
+  "source_count": 2
 }
 注意：statistics.local.models 仅按 model_name 聚合且无日期字段，不适用"昨日"场景。
 """
@@ -42,7 +40,7 @@ class AiUsageCollector(BaseCollector):
             result = await self._ctx.statistics.local.token_trend(days=2, bucket="day", group_by="model", top_items=20)
         except Exception as exc:  # 统计能力未授权或失败，跳过模块
             return self.error_result(f"统计查询失败: {exc}")
-        series = (result or {}).get("series") or {}
+        series = result or {}
         timestamps = series.get("timestamps") or []
         if not timestamps:
             return self.error_result("近两日无模型调用记录")

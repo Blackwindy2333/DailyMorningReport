@@ -91,7 +91,7 @@ MaiBot 第三方插件：每天定时采集新闻、科技热点、硬件价格�
 
 ## 权限与能力
 
-- 使用能力：`send.image`（群/私聊发图）、`send.text`（命令文本响应）、`statistics.local.models`（昨日 AI 消费）
+- 使用能力：`send.image`（群/私聊发图）、`send.text`（命令文本响应）、`statistics.local.token_trend`（昨日 AI 消费）
 - 渲染走 SDK `ctx.render.html2png`，不引入额外渲染依赖
 - 所有 API Key 仅存于配置，日志自动脱敏（`key[:4] + "****"`）
 
@@ -103,7 +103,7 @@ MaiBot 第三方插件：每天定时采集新闻、科技热点、硬件价格�
 | 游戏模块不显示 | 检查 `rawg_api_key` 是否填写 |
 | 定时推送不触发 | 检查 `enabled`、`push_time`、`target_groups` 配置 |
 | AI 额度不私发 | 检查 `admin_qq` 是否填写、至少一家厂商已填 key |
-| 昨日 AI 消费不显示 | 需 MaiBot 已开启本机统计能力（manifest 已声明 `statistics.local.models`） |
+| 昨日 AI 消费不显示 | 需 MaiBot 已开启本机统计能力（manifest 已声明 `statistics.local.token_trend`） |
 | 油价地区不生效 | 检查 `fuel_regions` 填写的地区名是否与油价站点一致（如 广东/上海/北京） |
 | 电影显示（TMDB） | 豆瓣被反爬时自动降级 TMDB，需配置 `tmdb_api_key` 否则该模块失败占位 |
 | 图片乱码/豆腐块 | 部署环境缺少中文字体时，在系统中安装 Noto Sans CJK 或微软雅黑 |

@@ -90,7 +90,8 @@ class FakeLocal:
 
     async def token_trend(self, *, days: int = 7, bucket: str = "day", group_by: str = "", top_items: int = 10):
         del days, bucket, group_by, top_items
-        return {"success": True, "series": self._series}
+        # 模拟 SDK 解包行为：直接返回 series 内容（不含 success/series 包装）
+        return self._series
 
 
 class FakeStats:
@@ -133,6 +134,21 @@ async def test_ai_usage_no_records(config, mock_logger) -> None:
     )
     result = await collector.collect()
     assert result.status == "error"
+
+
+@pytest.mark.asyncio
+async def test_ai_usage_missing_yesterday(config, mock_logger) -> None:
+    """timestamps 不含昨日时返回可读错误（不崩溃）。"""
+    today = __import__("datetime").date.today().isoformat()
+    series = {
+        "timestamps": [f"{today} 00:00:00"],
+        "values_by_key": {"gpt_4o": [10.0]},
+        "labels_by_key": {"gpt_4o": "gpt-4o"},
+    }
+    collector = AiUsageCollector(config, mock_logger, ctx=FakeCtxMin(series))
+    result = await collector.collect()
+    assert result.status == "error"
+    assert "昨日" in result.error_msg
 
 
 @pytest.mark.asyncio
