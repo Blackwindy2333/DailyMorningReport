@@ -63,9 +63,17 @@ class DailyScheduler:
             candidate += dt.timedelta(days=1)
         return candidate
 
+    def _resolve_tz(self) -> ZoneInfo:
+        """解析时区，非法配置回退到 Asia/Shanghai。"""
+        try:
+            return ZoneInfo(self._timezone)
+        except (KeyError, ValueError, OSError):
+            self._logger.warning("时区配置非法: %r，回退到 Asia/Shanghai", self._timezone)
+            return ZoneInfo("Asia/Shanghai")
+
     async def _run_loop(self) -> None:
         """调度主循环：睡到下一个触发时刻 → 执行任务 → 循环。"""
-        tz = ZoneInfo(self._timezone)
+        tz = self._resolve_tz()
         while True:
             now = dt.datetime.now(tz)
             next_at = self.next_run(now, self._parse_push_time(), tz)

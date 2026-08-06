@@ -12,7 +12,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from maibot_sdk import Command, MaiBotPlugin
+from maibot_sdk import Command, CONFIG_RELOAD_SCOPE_SELF, MaiBotPlugin
 
 from .collectors import COLLECTORS
 from .collectors.base import CollectorResult
@@ -64,7 +64,7 @@ class DailyMorningReportPlugin(MaiBotPlugin):
 
     async def on_config_update(self, scope: str, config_data: dict[str, Any], version: str) -> None:
         del config_data, version
-        if scope != "self":
+        if scope != CONFIG_RELOAD_SCOPE_SELF:
             return
         # self.config 已由 SDK 自动更新，重启调度循环使时间/开关即时生效
         if self._scheduler is not None:
@@ -181,6 +181,10 @@ class DailyMorningReportPlugin(MaiBotPlugin):
             if ai_quota is not None and ai_quota.status == "ok":
                 html = render_ai_quota_private(ai_quota, cfg)
                 images["private"].append(await self._render_image(html, "ai_quota"))
+
+        # 过滤渲染失败产生的空串，避免推送空图
+        images["groups"] = [img for img in images["groups"] if img]
+        images["private"] = [img for img in images["private"] if img]
 
         return images
 

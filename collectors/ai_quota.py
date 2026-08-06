@@ -51,7 +51,7 @@ class AiQuotaCollector(BaseCollector):
                 item = await fetcher(api_key)
                 quotas.append(item)
                 self.logger.info("AI额度 [%s] 查询成功", name)
-            except CollectorError as exc:
+            except Exception as exc:  # 单家失败不影响其余三家
                 self.logger.warning("AI额度 [%s] 查询失败: %s", name, exc)
 
         if not quotas:

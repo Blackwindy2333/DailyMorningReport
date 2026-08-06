@@ -3,6 +3,8 @@
 所有敏感字段（API Key 等）默认空字符串，由用户在 WebUI / config.toml 中填写。
 """
 
+from typing import List
+
 from maibot_sdk import Field, PluginConfigBase
 
 
@@ -26,7 +28,7 @@ class BasicSection(PluginConfigBase):
     enabled: bool = Field(default=True, description="是否启用每日定时推送")
     push_time: str = Field(default="08:00", description="每日推送时间（HH:MM）")
     timezone: str = Field(default="Asia/Shanghai", description="时区（IANA 名称）")
-    target_groups: list = Field(
+    target_groups: List[str] = Field(
         default_factory=list,
         description="推送目标QQ群号列表（留空则不推送群消息）",
     )
@@ -93,7 +95,7 @@ class RenderSection(PluginConfigBase):
     news_count: int = Field(default=10, description="新闻条数")
     tech_count: int = Field(default=15, description="科技热榜条数")
     game_days: int = Field(default=7, description="游戏发售前瞻天数")
-    fx_currencies: list = Field(
+    fx_currencies: List[str] = Field(
         default_factory=lambda: ["USD", "EUR", "JPY", "HKD", "GBP"],
         description="汇率展示币种列表（ISO 代码）",
     )

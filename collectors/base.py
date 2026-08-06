@@ -19,13 +19,6 @@ class CollectorError(Exception):
     """采集器内部错误，统一由 collect() 收敛为 CollectorResult。"""
 
 
-def mask_key(api_key: str) -> str:
-    """日志脱敏：仅保留前 4 位，其余打码。"""
-    if not api_key:
-        return ""
-    return api_key[:4] + "****"
-
-
 @dataclass
 class CollectorResult:
     """采集器统一输出结构。"""
@@ -76,44 +69,45 @@ class BaseCollector:
             await self._client.aclose()
             self._client = None
 
-    def _retryable(self, exc: Exception, status_code: int | None = None) -> bool:
-        """判断错误是否值得重试：连接错误/超时/5xx 重试，4xx 不重试。"""
-        if isinstance(exc, (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout)):
-            return True
-        if status_code is not None and status_code >= 500:
-            return True
-        return False
+    def _safe_url(self, url: str) -> str:
+        """错误消息用：剥离 query string，避免 key 等敏感参数泄露。"""
+        try:
+            parsed = httpx.URL(url)
+            # copy_with 不接受空字符串 query，用 None 保留其余部分但清除查询
+            return str(parsed.copy_with(query=None)).split("?", 1)[0]
+        except ValueError:
+            return url.split("?", 1)[0]
 
     async def _request_with_retry(self, url: str, **kwargs: Any) -> httpx.Response:
         """GET 请求，带可配置重试（指数退避），失败抛 CollectorError。"""
         client = await self.get_client()
-        last_exc: Exception | None = None
+        safe_url = self._safe_url(url)
         for attempt in range(self._retry_count):
             try:
                 response = await client.get(url, **kwargs)
                 if response.status_code >= 400:
-                    if self._retryable(Exception(), response.status_code) and attempt < self._retry_count - 1:
+                    if response.status_code >= 500 and attempt < self._retry_count - 1:
                         await asyncio.sleep(self._retry_interval * (2**attempt))
                         continue
-                    raise CollectorError(f"HTTP {response.status_code}: {url}")
+                    raise CollectorError(f"HTTP {response.status_code}: {safe_url}")
                 return response
             except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout) as exc:
-                last_exc = exc
                 if attempt < self._retry_count - 1:
                     await asyncio.sleep(self._retry_interval * (2**attempt))
                     continue
                 raise CollectorError(f"请求失败: {exc}") from exc
-        raise CollectorError(f"请求失败: {last_exc}")
+        raise CollectorError(f"请求失败: {safe_url}")
 
     async def fetch_json(self, url: str, **kwargs: Any) -> dict[str, Any]:
         """GET + JSON 解析，带重试；失败抛 CollectorError。"""
         response = await self._request_with_retry(url, **kwargs)
+        safe_url = self._safe_url(url)
         try:
             data = response.json()
         except ValueError as exc:
-            raise CollectorError(f"JSON 解析失败: {url}") from exc
+            raise CollectorError(f"JSON 解析失败: {safe_url}") from exc
         if not isinstance(data, dict):
-            raise CollectorError(f"响应非 JSON 对象: {url}")
+            raise CollectorError(f"响应非 JSON 对象: {safe_url}")
         return data
 
     async def fetch_text(self, url: str, **kwargs: Any) -> str:

@@ -43,7 +43,11 @@ class AnimeCollector(BaseCollector):
             )
             if not isinstance(payload, list):
                 raise CollectorError("Bangumi 日历响应结构异常")
-            today_weekday = dt.date.today().isoweekday()  # 1=周一 ... 7=周日
+            # 用配置时区计算"今天"，避免服务器 UTC 偏差
+            from zoneinfo import ZoneInfo
+
+            tz = ZoneInfo(self.config.basic.timezone)
+            today_weekday = dt.datetime.now(tz).isoweekday()  # 1=周一 ... 7=周日
             target = None
             for day_group in payload:
                 weekday = (day_group.get("weekday") or {}).get("id")
