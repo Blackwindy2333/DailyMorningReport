@@ -30,8 +30,7 @@ class FuelCollector(BaseCollector):
     display_name = "油价"
 
     async def collect(self) -> CollectorResult:
-        regions = getattr(self.config.render, "fuel_regions", None) or ["北京"]
-        regions = [str(r).strip() for r in regions if str(r).strip()]
+        regions = [str(r).strip() for r in self.config.render.fuel_regions if str(r).strip()]
         if not regions:
             return self.error_result("未配置油价地区")
         try:

@@ -80,6 +80,6 @@ class HolidayCollector(BaseCollector):
                     }
                 )
             return events
-        except CollectorError as exc:
+        except Exception as exc:  # 历史事件拉取失败不致命，仅跳过该部分
             self.logger.warning("今日历史事件拉取失败: %s", exc)
             return []

@@ -42,7 +42,7 @@
       "version_spec": ">=4.12.0"
     }
   ],
-  "capabilities": ["send.image", "send.text", "statistics.local.models"],
+  "capabilities": ["send.image", "send.text", "statistics.local.models", "statistics.local.token_trend"],
   "i18n": {
     "default_locale": "zh-CN",
     "supported_locales": ["zh-CN"]

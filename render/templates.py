@@ -276,17 +276,15 @@ def ai_usage_card(result: CollectorResult) -> str:
     if result.status == "error":
         return error_card(result.module_id, "昨日 AI 消费", result.error_msg)
     rows = "".join(
-        f"    <tr><td>{_esc(item['model'])}</td>"
-        f'<td class="num">{item["calls"]}</td>'
-        f'<td class="num">{_fmt_tokens(item["total_tokens"])}</td></tr>'
+        f'    <tr><td>{_esc(item["model"])}</td><td class="num">{_fmt_tokens(item["total_tokens"])}</td></tr>'
         for item in result.data.get("models", [])
     )
     totals = result.data.get("totals") or {}
     inner = f"""    <table>
-      <tr><th>模型</th><th class="num">调用</th><th class="num">Tokens</th></tr>
+      <tr><th>模型</th><th class="num">Tokens</th></tr>
 {rows}
     </table>
-    <div class="tip">昨日合计 {totals.get("calls", 0)} 次调用，共消耗 {_fmt_tokens(totals.get("total_tokens", 0))} Tokens</div>"""
+    <div class="tip">昨日共消耗 {_fmt_tokens(totals.get("total_tokens", 0))} Tokens</div>"""
     return card_wrapper(
         result.module_id, f"昨日 AI 消费（{_esc(result.data.get('date') or '')}）", result.fetched_at, inner
     )

@@ -85,68 +85,52 @@ def test_holiday_card_renders(config) -> None:
 
 
 class FakeLocal:
-    def __init__(self, records) -> None:
-        self._records = records
+    def __init__(self, series) -> None:
+        self._series = series
 
-    async def models(self, *, days: int = 7, limit: int = 10):
-        del days, limit
-        return self._records
+    async def token_trend(self, *, days: int = 7, bucket: str = "day", group_by: str = "", top_items: int = 10):
+        del days, bucket, group_by, top_items
+        return {"success": True, "series": self._series}
 
 
 class FakeStats:
-    def __init__(self, records) -> None:
-        self.local = FakeLocal(records)
+    def __init__(self, series) -> None:
+        self.local = FakeLocal(series)
 
 
 class FakeCtxMin:
-    def __init__(self, records) -> None:
-        self.statistics = FakeStats(records)
+    def __init__(self, series) -> None:
+        self.statistics = FakeStats(series)
 
 
 @pytest.mark.asyncio
 async def test_ai_usage_aggregates_yesterday(config, mock_logger) -> None:
-    today_key = __import__("datetime").date.today().isoformat()
     yesterday = (__import__("datetime").date.today() - __import__("datetime").timedelta(days=1)).isoformat()
-    records = [
-        {
-            "model_name": "gpt-4o",
-            "date": yesterday,
-            "prompt_tokens": 100,
-            "completion_tokens": 50,
-            "total_tokens": 150,
-            "calls": 2,
-        },
-        {
-            "model_name": "gpt-4o",
-            "date": yesterday,
-            "prompt_tokens": 10,
-            "completion_tokens": 5,
-            "total_tokens": 15,
-            "calls": 1,
-        },
-        {
-            "model_name": "claude",
-            "date": today_key,
-            "prompt_tokens": 999,
-            "completion_tokens": 999,
-            "total_tokens": 1998,
-            "calls": 1,
-        },
-    ]
-    collector = AiUsageCollector(config, mock_logger, ctx=FakeCtxMin(records))
+    today = __import__("datetime").date.today().isoformat()
+    # 模拟主程序 token_trend 真实返回（按日分桶，value 为 total_tokens）
+    series = {
+        "timestamps": [f"{yesterday} 00:00:00", f"{today} 00:00:00"],
+        "values_by_key": {"gpt_4o": [165.0, 0.0], "claude": [0.0, 1998.0]},
+        "labels_by_key": {"gpt_4o": "gpt-4o", "claude": "claude"},
+        "total": 2163.0,
+        "source_count": 2,
+    }
+    collector = AiUsageCollector(config, mock_logger, ctx=FakeCtxMin(series))
     result = await collector.collect()
     assert result.status == "ok"
     assert result.data["date"] == yesterday
-    assert result.data["totals"]["total_tokens"] == 165  # 150 + 15
-    assert result.data["totals"]["calls"] == 3
+    assert result.data["totals"]["total_tokens"] == 165  # 仅昨日
     models = result.data["models"]
     assert len(models) == 1  # claude 是今天，被过滤
     assert models[0]["model"] == "gpt-4o"
+    assert models[0]["total_tokens"] == 165
 
 
 @pytest.mark.asyncio
 async def test_ai_usage_no_records(config, mock_logger) -> None:
-    collector = AiUsageCollector(config, mock_logger, ctx=FakeCtxMin([]))
+    collector = AiUsageCollector(
+        config, mock_logger, ctx=FakeCtxMin({"timestamps": [], "values_by_key": {}, "labels_by_key": {}})
+    )
     result = await collector.collect()
     assert result.status == "error"
 
@@ -165,8 +149,8 @@ def test_ai_usage_card_renders(config) -> None:
         status="ok",
         data={
             "date": "2026-08-05",
-            "models": [{"model": "gpt-4o", "calls": 3, "total_tokens": 1500}],
-            "totals": {"calls": 3, "total_tokens": 1500},
+            "models": [{"model": "gpt-4o", "total_tokens": 1500}],
+            "totals": {"total_tokens": 1500},
         },
     )
     html = ai_usage_card(result)

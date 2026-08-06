@@ -204,8 +204,8 @@ def test_render_group2_with_public_quota(config) -> None:
         "ai_usage",
         {
             "date": "2026-08-05",
-            "models": [{"model": "gpt-4o", "calls": 3, "total_tokens": 500}],
-            "totals": {"calls": 3, "total_tokens": 500},
+            "models": [{"model": "gpt-4o", "total_tokens": 500}],
+            "totals": {"total_tokens": 500},
         },
     )
     html = render_group2(fx, fuel, gold, dram, quota, usage, config)

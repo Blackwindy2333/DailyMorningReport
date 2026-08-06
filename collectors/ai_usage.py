@@ -1,16 +1,25 @@
 """昨日 AI 消费汇总采集器（基于 SDK ctx.statistics）。
 
-使用 ctx.statistics.local.models(days=2, limit=N) 获取最近两天的模型汇总，
-按日期区分昨日与今日。需要 manifest capabilities 声明 statistics.local.models。
-
-响应结构（SDK 层约定，list[dict]，字段以 Host 实际返回为准，做容错）：
-[{"model_name": "gpt-4o", "date": "2026-08-05", "prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150}, ...]
+使用 ctx.statistics.local.token_trend(days=2, bucket="day", group_by="model")：
+返回按日分桶的模型 token 趋势，可精确提取"昨日"的数据。
+响应结构（主程序 src/plugin_runtime/capabilities/data.py 确认）：
+{
+  "success": true,
+  "series": {
+    "timestamps": ["2026-08-05 00:00:00", "2026-08-06 00:00:00"],   # 按日分桶
+    "values_by_key": {"gpt_4o": [150.0, 0.0], ...},                  # 每个模型：按 timestamps 顺序的 total_tokens
+    "labels_by_key": {"gpt_4o": "gpt-4o"},                            # key -> 模型名
+    "total": 150.0,
+    "source_count": 2
+  }
+}
+注意：statistics.local.models 仅按 model_name 聚合且无日期字段，不适用"昨日"场景。
 """
 
 from __future__ import annotations
 
+import datetime as dt
 import logging
-import re
 from typing import Any
 
 from .base import BaseCollector, CollectorResult
@@ -30,58 +39,46 @@ class AiUsageCollector(BaseCollector):
         if self._ctx is None:
             return self.error_result("统计能力不可用（ctx 未注入）")
         try:
-            records = await self._ctx.statistics.local.models(days=2, limit=100)
+            result = await self._ctx.statistics.local.token_trend(days=2, bucket="day", group_by="model", top_items=20)
         except Exception as exc:  # 统计能力未授权或失败，跳过模块
             return self.error_result(f"统计查询失败: {exc}")
-        if not records:
+        series = (result or {}).get("series") or {}
+        timestamps = series.get("timestamps") or []
+        if not timestamps:
             return self.error_result("近两日无模型调用记录")
 
-        yesterday_key = self._yesterday_key()
-        yesterday = [r for r in records if self._record_date(r) == yesterday_key]
-        if not yesterday:
+        # 找到"昨日"（00:00:00 格式日期）的索引
+        yesterday = (dt.date.today() - dt.timedelta(days=1)).isoformat()
+        yesterday_index = None
+        for index, ts in enumerate(timestamps):
+            if str(ts).startswith(yesterday):
+                yesterday_index = index
+                break
+        if yesterday_index is None:
             return self.error_result("昨日无模型调用记录")
 
-        # 聚合：按模型汇总 token 用量
-        by_model: dict[str, dict[str, Any]] = {}
-        for record in yesterday:
-            name = str(record.get("model_name") or record.get("model") or "未知模型")
-            item = by_model.setdefault(
-                name, {"model": name, "calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
-            )
-            item["calls"] += int(record.get("calls") or record.get("request_count") or 1)
-            item["prompt_tokens"] += int(record.get("prompt_tokens") or 0)
-            item["completion_tokens"] += int(record.get("completion_tokens") or 0)
-            item["total_tokens"] += int(record.get("total_tokens") or 0)
+        # 汇总各模型昨日 token 用量
+        labels_by_key = series.get("labels_by_key") or {}
+        values_by_key = series.get("values_by_key") or {}
+        models = []
+        total_tokens = 0
+        for key, values in values_by_key.items():
+            value = float(values[yesterday_index]) if yesterday_index < len(values) else 0.0
+            if value <= 0:
+                continue
+            name = str(labels_by_key.get(key) or key)
+            models.append({"model": name, "total_tokens": int(value)})
+            total_tokens += int(value)
 
-        totals = {
-            "calls": sum(v["calls"] for v in by_model.values()),
-            "prompt_tokens": sum(v["prompt_tokens"] for v in by_model.values()),
-            "completion_tokens": sum(v["completion_tokens"] for v in by_model.values()),
-            "total_tokens": sum(v["total_tokens"] for v in by_model.values()),
-        }
+        if not models:
+            return self.error_result("昨日无模型调用记录")
+        models.sort(key=lambda m: m["total_tokens"], reverse=True)
         return CollectorResult(
             module_id=self.module_id,
             status="ok",
             data={
-                "date": yesterday_key,
-                "models": sorted(by_model.values(), key=lambda v: v["total_tokens"], reverse=True),
-                "totals": totals,
+                "date": yesterday,
+                "models": models,
+                "totals": {"total_tokens": total_tokens},
             },
         )
-
-    @staticmethod
-    def _yesterday_key() -> str:
-        import datetime as dt
-
-        return (dt.date.today() - dt.timedelta(days=1)).isoformat()
-
-    @staticmethod
-    def _record_date(record: dict[str, Any]) -> str:
-        """从记录提取日期（容错多种日期字段格式）。"""
-        for key in ("date", "day", "created_at"):
-            value = record.get(key)
-            if value:
-                match = re.match(r"(\d{4}-\d{2}-\d{2})", str(value))
-                if match:
-                    return match.group(1)
-        return ""

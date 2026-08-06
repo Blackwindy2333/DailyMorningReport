@@ -117,3 +117,5 @@ class MovieCollector(BaseCollector):
             )
         except CollectorError as exc:
             return self.error_result(f"TMDB: {exc}")
+        except Exception as exc:  # 解析异常（如 float 转换失败）统一降级
+            return self.error_result(f"TMDB: {exc}")

@@ -87,10 +87,12 @@ class DailyMorningReportPlugin(MaiBotPlugin):
 
     def _build_collectors(self) -> list[Any]:
         """按当前配置实例化采集器（每次执行重建，配置变化即生效）。"""
+        from .collectors.ai_usage import AiUsageCollector
+
         collectors = []
         for cls in COLLECTORS.values():
             # ai_usage 依赖 ctx.statistics，单独注入上下文
-            if cls.__name__ == "AiUsageCollector":
+            if cls is AiUsageCollector:
                 collectors.append(cls(self.config, self.ctx.logger, ctx=self.ctx))
             else:
                 collectors.append(cls(self.config, self.ctx.logger))
@@ -239,8 +241,10 @@ class DailyMorningReportPlugin(MaiBotPlugin):
                 url = str(item.get("image_url") or "")
                 if url:
                     urls.append(url)
-        for url in urls:
-            data_url = await self._cover_manager.ensure_cover(url)
+        # 并发下载封面（CoverManager 内部信号量限流），避免串行拖慢渲染
+        tasks = [self._cover_manager.ensure_cover(url) for url in urls]
+        data_urls = await asyncio.gather(*tasks)
+        for url, data_url in zip(urls, data_urls, strict=True):
             if data_url:
                 covers[url] = data_url
         return covers
