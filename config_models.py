@@ -80,6 +80,7 @@ class ExternalApiSection(PluginConfigBase):
 
     exchangerate_api_key: str = Field(default="", description="ExchangeRate-API Key（可留空，免费端点免 key）")
     rawg_api_key: str = Field(default="", description="RAWG API Key（游戏发售模块）")
+    tmdb_api_key: str = Field(default="", description="TMDB API Key（豆瓣反爬时的电影降级源，可留空）")
 
 
 class RenderSection(PluginConfigBase):

@@ -266,10 +266,78 @@ async def test_movie_parse(config, mock_logger) -> None:
     _install(collector, text_resp=DOUBAN_HTML)
     result = await collector.collect()
     assert result.status == "ok"
+    assert result.data["source"] == "douban"
     movie = result.data["movies"][0]
     assert movie["name"] == "去你的岛"
     assert movie["date"] == "08月07日"
     assert movie["wish"] == "5028人想看"
+
+
+TMDB_RESP = {
+    "page": 1,
+    "total_pages": 1,
+    "results": [
+        {
+            "id": 1,
+            "title": "TMDB 新片",
+            "original_title": "TMDB Movie",
+            "release_date": "2026-08-10",
+            "poster_path": "/abc.jpg",
+            "vote_average": 7.8,
+        }
+    ],
+}
+
+
+@pytest.mark.asyncio
+async def test_movie_falls_back_to_tmdb(config, mock_logger) -> None:
+    """豆瓣失败（反爬）时自动降级 TMDB。"""
+    config.external_api.tmdb_api_key = "tmdb-test-key"
+    collector = MovieCollector(config, mock_logger)
+
+    # 豆瓣：403 失败（模拟真实 fetch 转成的 CollectorError）；TMDB：成功
+    from DailyMorningReport.collectors.base import CollectorError as CE
+
+    async def fake_text(url, **kwargs):
+        del url, kwargs
+        raise CE("HTTP 403: movie.douban.com")
+
+    calls = {}
+
+    async def fake_json(url, **kwargs):
+        del kwargs
+        calls["url"] = url
+        if "themoviedb.org" in url:
+            return TMDB_RESP
+        raise AssertionError(f"unexpected url: {url}")
+
+    collector.fetch_text = fake_text  # type: ignore[method-assign]
+    collector.fetch_json = fake_json  # type: ignore[method-assign]
+    result = await collector.collect()
+    assert result.status == "ok"
+    assert result.data["source"] == "tmdb"
+    movie = result.data["movies"][0]
+    assert movie["name"] == "TMDB 新片"
+    assert movie["score"] == 7.8
+    assert movie["image_url"] == "https://image.tmdb.org/t/p/w500/abc.jpg"
+    assert "primary_release_date.gte" in calls["url"]
+
+
+@pytest.mark.asyncio
+async def test_movie_tmdb_skipped_without_key(config, mock_logger) -> None:
+    """豆瓣失败且未配置 TMDB key 时返回豆瓣错误。"""
+    from DailyMorningReport.collectors.base import CollectorError as CE
+
+    collector = MovieCollector(config, mock_logger)
+
+    async def fake_text(url, **kwargs):
+        del url, kwargs
+        raise CE("HTTP 403: movie.douban.com")
+
+    collector.fetch_text = fake_text  # type: ignore[method-assign]
+    result = await collector.collect()
+    assert result.status == "error"
+    assert "豆瓣" in result.error_msg
 
 
 @pytest.mark.asyncio

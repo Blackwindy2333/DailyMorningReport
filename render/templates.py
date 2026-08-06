@@ -289,16 +289,21 @@ def movie_card(result: CollectorResult, cover_base64: dict[str, str]) -> str:
     """电影卡片。"""
     if result.status == "error":
         return error_card(result.module_id, "电影", result.error_msg)
+    source = result.data.get("source", "douban")
+    title = "近期上映" if source == "douban" else "近期上映（TMDB）"
     items = []
     for movie in result.data.get("movies", []):
         img = _cover_img(movie.get("image_url") or "", cover_base64, "movie")
+        score = ""
+        if movie.get("score"):
+            score = f" · ⭐ {_num(movie['score'])}"
         tags = " / ".join(str(movie.get(k) or "") for k in ("date", "genre", "region", "wish") if movie.get(k))
         items.append(
             f'    <div class="movie-item">{img}'
-            f'<div class="meta"><div class="name">{_esc(movie["name"])}</div>'
+            f'<div class="meta"><div class="name">{_esc(movie["name"])}{score}</div>'
             f'<div class="tags">{_esc(tags)}</div></div></div>'
         )
-    return card_wrapper(result.module_id, "近期上映", result.fetched_at, "\n".join(items))
+    return card_wrapper(result.module_id, title, result.fetched_at, "\n".join(items))
 
 
 def game_card(result: CollectorResult, cover_base64: dict[str, str]) -> str:
