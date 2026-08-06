@@ -1,0 +1,15 @@
+# 运行时配置（Runner 生成，含用户密钥，禁止提交）
+/config.toml
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# 日志
+logs/
+
+# 临时文件
+temp/
