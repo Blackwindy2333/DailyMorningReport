@@ -470,7 +470,7 @@ class DailyMorningReportPlugin(MaiBotPlugin):
     async def _apply_config_change(self, key: str, value: Any) -> str:
         """校验并应用配置修改（仅运行时生效），返回回复文本。"""
         if is_sensitive_key(key):
-            raise AdminCommandError("该配置项含敏感信息（api_key/token/secret），请到 WebUI 修改")
+            raise AdminCommandError("该配置项含敏感信息（AI 额度 key 或 api_key/token/secret），请到 WebUI 修改")
         current = self.get_plugin_config_data()
         try:
             updated = set_nested(current, key, value)
