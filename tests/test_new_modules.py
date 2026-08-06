@@ -1,7 +1,6 @@
 """新模块测试：节假日/纪念日、AI 消费汇总、早报存档。"""
 
 import json
-import logging
 
 import pytest
 
@@ -204,7 +203,6 @@ def test_archive_prunes_old(tmp_path, mock_logger) -> None:
 
 
 def test_archive_save_oserror_does_not_crash(tmp_path, mock_logger) -> None:
-    manager = ArchiveManager(tmp_path, mock_logger)
     # data_dir 指向一个文件，mkdir 会失败
     blocker = tmp_path / "blocker"
     blocker.write_text("x", encoding="utf-8")

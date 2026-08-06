@@ -11,5 +11,8 @@ venv/
 # 日志
 logs/
 
+# 运行时数据（早报存档等）
+archive/
+
 # 临时文件
 temp/
