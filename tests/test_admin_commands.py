@@ -59,7 +59,10 @@ def test_convert_value() -> None:
 
 def test_is_sensitive_key_and_scheduler() -> None:
     assert is_sensitive_key("ai_quota.openrouter.api_key")
+    assert is_sensitive_key("ai_quota.deepseek")  # 平铺 key 也属敏感
     assert is_sensitive_key("external_api.tmdb_api_key")
+    assert not is_sensitive_key("modules.ai_quota_enabled")  # 模块开关不受影响
+    assert not is_sensitive_key("modules.ai_quota_public")
     assert not is_sensitive_key("basic.push_time")
     assert affects_scheduler("basic.push_time")
     assert affects_scheduler("basic.enabled")
@@ -83,13 +86,13 @@ def test_set_nested_requires_dict_path() -> None:
 
 def test_status_masks_sensitive() -> None:
     config = DailyMorningReportConfig()
-    config.ai_quota.openrouter.api_key = "sk-test"
+    config.ai_quota.openrouter = "sk-test"
     config.basic.admin_qqs = ["111", "222"]
     text = build_status_text(config.model_dump())
-    assert "api_key = ****" in text
+    assert "ai_quota.openrouter = ****" in text
     assert "sk-test" not in text
     assert "admin_qqs = 111、222" in text
-    assert "config_version = 1.2.0" in text
+    assert "config_version = 1.3.0" in text
 
 
 def test_help_text_notes_runtime_only() -> None:

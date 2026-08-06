@@ -144,7 +144,7 @@ async def test_ai_quota_private_skipped_when_disabled() -> None:
     """ai_quota 禁用 → 私聊图不渲染。"""
     config = DailyMorningReportConfig()
     config.basic.admin_qqs = ["123456"]
-    config.ai_quota.openrouter.api_key = "sk-test"
+    config.ai_quota.openrouter = "sk-test"
     config.modules.ai_quota_enabled = False
     plugin = _make_plugin_with_render(config)
     images = await plugin._render(_all_results())
@@ -156,7 +156,7 @@ async def test_ai_quota_private_rendered_when_enabled() -> None:
     """ai_quota 启用且配置 key → 私聊图渲染。"""
     config = DailyMorningReportConfig()
     config.basic.admin_qqs = ["123456"]
-    config.ai_quota.openrouter.api_key = "sk-test"
+    config.ai_quota.openrouter = "sk-test"
     plugin = _make_plugin_with_render(config)
     images = await plugin._render(_all_results())
     assert len(images["private"]) == 1

@@ -4,7 +4,7 @@ from DailyMorningReport.config_models import DailyMorningReportConfig
 
 
 def test_default_values(config: DailyMorningReportConfig) -> None:
-    assert config.plugin.config_version == "1.2.0"
+    assert config.plugin.config_version == "1.3.0"
     assert config.basic.enabled is True
     assert config.basic.push_time == "08:00"
     assert config.basic.timezone == "Asia/Shanghai"
@@ -38,15 +38,12 @@ def test_modules_defaults(config: DailyMorningReportConfig) -> None:
     assert not hasattr(config, "groups")
 
 
-def test_ai_quota_nested_defaults(config: DailyMorningReportConfig) -> None:
-    for section in (
-        config.ai_quota.openrouter,
-        config.ai_quota.deepseek,
-        config.ai_quota.kimi,
-        config.ai_quota.siliconflow,
-    ):
-        assert section.enabled is True
-        assert section.api_key == ""
+def test_ai_quota_flat_keys_default_empty(config: DailyMorningReportConfig) -> None:
+    """AI 额度四家厂商为平铺 key，默认空（空即跳过）。"""
+    assert config.ai_quota.openrouter == ""
+    assert config.ai_quota.deepseek == ""
+    assert config.ai_quota.kimi == ""
+    assert config.ai_quota.siliconflow == ""
 
 
 def test_external_api_empty_keys(config: DailyMorningReportConfig) -> None:
@@ -67,8 +64,8 @@ def test_custom_values_override() -> None:
     cfg.basic.push_time = "09:30"
     cfg.basic.target_groups = ["10001", "10002"]
     cfg.basic.admin_qqs = ["111", "222"]
-    cfg.ai_quota.deepseek.api_key = "sk-test"
+    cfg.ai_quota.deepseek = "sk-test"
     assert cfg.basic.push_time == "09:30"
     assert cfg.basic.target_groups == ["10001", "10002"]
     assert cfg.basic.admin_qqs == ["111", "222"]
-    assert cfg.ai_quota.deepseek.api_key == "sk-test"
+    assert cfg.ai_quota.deepseek == "sk-test"

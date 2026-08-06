@@ -84,7 +84,7 @@ async def test_orchestrator_collect_failure_isolated() -> None:
     config = DailyMorningReportConfig()
     config.basic.target_groups = ["10001"]
     config.basic.admin_qqs = ["123456"]
-    config.ai_quota.openrouter.api_key = "sk-or-1"
+    config.ai_quota.openrouter = "sk-or-1"
     plugin = await _make_plugin(config)
 
     # 用固定结果替换真实采集：news ok，其余 error（模拟大部分失败）
@@ -116,7 +116,7 @@ async def test_orchestrator_ai_quota_private_and_public() -> None:
     config = DailyMorningReportConfig()
     config.basic.target_groups = ["10001"]
     config.basic.admin_qqs = ["123456"]
-    config.ai_quota.openrouter.api_key = "sk-or-1"
+    config.ai_quota.openrouter = "sk-or-1"
     plugin = await _make_plugin(config)
 
     results = {
@@ -198,7 +198,7 @@ async def test_full_execute_private_to_multiple_admins() -> None:
     config = DailyMorningReportConfig()
     config.basic.target_groups = []
     config.basic.admin_qqs = ["111", "222"]
-    config.ai_quota.openrouter.api_key = "sk-or-1"
+    config.ai_quota.openrouter = "sk-or-1"
     plugin = await _make_plugin(config)
     plugin._collectors = []
 

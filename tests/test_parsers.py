@@ -405,10 +405,10 @@ async def test_game_skipped_without_key(config, mock_logger) -> None:
 
 @pytest.mark.asyncio
 async def test_ai_quota_parse(config, mock_logger) -> None:
-    config.ai_quota.openrouter.api_key = "sk-or-1"
-    config.ai_quota.deepseek.api_key = "sk-ds-1"
-    config.ai_quota.kimi.api_key = "sk-km-1"
-    config.ai_quota.siliconflow.api_key = "sk-sf-1"
+    config.ai_quota.openrouter = "sk-or-1"
+    config.ai_quota.deepseek = "sk-ds-1"
+    config.ai_quota.kimi = "sk-km-1"
+    config.ai_quota.siliconflow = "sk-sf-1"
 
     collector = AiQuotaCollector(config, mock_logger)
     responses = {
@@ -436,8 +436,8 @@ async def test_ai_quota_parse(config, mock_logger) -> None:
 
 @pytest.mark.asyncio
 async def test_ai_quota_skips_disabled(config, mock_logger) -> None:
-    config.ai_quota.deepseek.api_key = "sk-ds-1"
-    config.ai_quota.openrouter.enabled = False
+    config.ai_quota.deepseek = "sk-ds-1"
+    config.ai_quota.openrouter = ""  # 空 key 即禁用
     collector = AiQuotaCollector(config, mock_logger)
 
     async def fake_json(url, **kwargs):
