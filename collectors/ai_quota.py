@@ -42,9 +42,9 @@ class AiQuotaCollector(BaseCollector):
             "Kimi": (cfg.kimi, self._fetch_kimi),
             "SiliconFlow": (cfg.siliconflow, self._fetch_siliconflow),
         }
-        for name, (section, fetcher) in key_map.items():
-            if section.enabled and section.api_key:
-                tasks.append((name, section.api_key, fetcher))
+        for name, (api_key, fetcher) in key_map.items():
+            if api_key:
+                tasks.append((name, api_key, fetcher))
 
         for name, api_key, fetcher in tasks:
             try:
