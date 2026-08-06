@@ -1,7 +1,5 @@
 """模块开关测试：关闭项不采集、不渲染；组内全关则整图跳过。"""
 
-import asyncio
-
 import pytest
 
 from DailyMorningReport.collectors.base import CollectorResult
