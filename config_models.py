@@ -118,7 +118,7 @@ class ModulesSection(PluginConfigBase):
     game_enabled: bool = Field(default=True, description="游戏发售")
 
     ai_quota_enabled: bool = Field(default=True, description="AI 额度（私聊/公开）")
-    ai_quota_public: bool = Field(default=False, description="AI额度是否公开推送到群（默认仅私发管理员）")
+    ai_quota_public: bool = Field(default=False, description="AI 额度是否公开推送到群（默认仅私发管理员）")
 
 
 class DailyMorningReportConfig(PluginConfigBase):
