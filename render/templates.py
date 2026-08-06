@@ -403,18 +403,20 @@ def render_group1(
     news_result: CollectorResult,
     tech_result: CollectorResult,
     holiday_result: CollectorResult | None,
+    enabled_modules: set[str],
     config: Any,
 ) -> str:
-    """组 1 资讯速览：节日提醒 + 新闻 + 科技。"""
+    """组 1 资讯速览：节日提醒 + 新闻 + 科技。
+
+    enabled_modules: 启用的模块 ID 集合，禁用的模块不渲染其卡片。
+    """
     cards = []
-    if holiday_result is not None:
+    if holiday_result is not None and "holiday" in enabled_modules:
         cards.append(holiday_card(holiday_result))
-    cards.extend(
-        [
-            news_card(news_result, limit=int(getattr(config.render, "news_count", 10))),
-            tech_card(tech_result, limit=int(getattr(config.render, "tech_count", 15))),
-        ]
-    )
+    if "news" in enabled_modules:
+        cards.append(news_card(news_result, limit=int(getattr(config.render, "news_count", 10))))
+    if "tech" in enabled_modules:
+        cards.append(tech_card(tech_result, limit=int(getattr(config.render, "tech_count", 15))))
     return render_page(
         title="每日早报 · 资讯速览",
         subtitle="新闻速读与科技热点",
@@ -430,18 +432,22 @@ def render_group2(
     dram_result: CollectorResult,
     ai_quota_result: CollectorResult | None,
     ai_usage_result: CollectorResult | None,
+    enabled_modules: set[str],
     config: Any,
 ) -> str:
     """组 2 行情财经：汇率 + 油价 + 金价 + DRAM（+ 公开 AI 额度 + 昨日 AI 消费）。"""
-    cards = [
-        fx_card(fx_result),
-        fuel_card(fuel_result),
-        gold_card(gold_result),
-        dram_card(dram_result),
-    ]
-    if ai_quota_result is not None:
+    cards = []
+    if "fx" in enabled_modules:
+        cards.append(fx_card(fx_result))
+    if "fuel" in enabled_modules:
+        cards.append(fuel_card(fuel_result))
+    if "gold" in enabled_modules:
+        cards.append(gold_card(gold_result))
+    if "dram" in enabled_modules:
+        cards.append(dram_card(dram_result))
+    if ai_quota_result is not None and "ai_quota" in enabled_modules:
         cards.append(ai_quota_card(ai_quota_result, public=True))
-    if ai_usage_result is not None:
+    if ai_usage_result is not None and "ai_usage" in enabled_modules:
         cards.append(ai_usage_card(ai_usage_result))
     return render_page(
         title="每日早报 · 行情财经",
@@ -456,14 +462,17 @@ def render_group3(
     movie_result: CollectorResult,
     game_result: CollectorResult,
     cover_base64: dict[str, str],
+    enabled_modules: set[str],
     config: Any,
 ) -> str:
     """组 3 文娱生活：新番 + 电影 + 游戏。"""
-    cards = [
-        anime_card(anime_result, cover_base64),
-        movie_card(movie_result, cover_base64),
-        game_card(game_result, cover_base64),
-    ]
+    cards = []
+    if "anime" in enabled_modules:
+        cards.append(anime_card(anime_result, cover_base64))
+    if "movie" in enabled_modules:
+        cards.append(movie_card(movie_result, cover_base64))
+    if "game" in enabled_modules:
+        cards.append(game_card(game_result, cover_base64))
     return render_page(
         title="每日早报 · 文娱生活",
         subtitle="新番、电影与游戏",
