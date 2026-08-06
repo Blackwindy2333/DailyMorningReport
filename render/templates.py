@@ -249,7 +249,7 @@ def ai_quota_card(result: CollectorResult, public: bool = False) -> str:
         return error_card(result.module_id, "AI 额度", result.error_msg)
     rows = "".join(
         f"    <tr><td>{_esc(q['provider'])}</td>"
-        f'<td class="num">{_num(q["balance"])} {_esc(q["currency"])}</td>'
+        f'<td class="num">{_quota_balance(q["balance"])} {_esc(q["currency"])}</td>'
         f"<td>{_esc(q.get('note') or '')}</td></tr>"
         for q in result.data.get("quotas", [])
     )
@@ -258,6 +258,13 @@ def ai_quota_card(result: CollectorResult, public: bool = False) -> str:
 {rows}
     </table>"""
     return card_wrapper(result.module_id, "AI 额度", result.fetched_at, inner)
+
+
+def _quota_balance(balance: Any) -> str:
+    """余额显示：None（无上限）显示为'无上限'。"""
+    if balance is None:
+        return "无上限"
+    return _num(balance)
 
 
 def anime_card(result: CollectorResult, cover_base64: dict[str, str]) -> str:

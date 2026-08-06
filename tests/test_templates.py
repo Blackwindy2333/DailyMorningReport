@@ -103,6 +103,17 @@ def test_ai_quota_card_ok() -> None:
     assert "110" in html
 
 
+def test_ai_quota_unlimited_shows_text() -> None:
+    """balance=None（按量计费无上限）显示'无上限'而非数字。"""
+    result = _ok(
+        "ai_quota",
+        {"quotas": [{"provider": "OpenRouter", "balance": None, "currency": "USD", "note": "按量计费/无上限"}]},
+    )
+    html = ai_quota_card(result)
+    assert "无上限" in html
+    assert "-1" not in html
+
+
 def test_ai_quota_error() -> None:
     html = ai_quota_card(_err("ai_quota", "未配置任何 AI 厂商 API Key"))
     assert "AI 额度获取失败" in html

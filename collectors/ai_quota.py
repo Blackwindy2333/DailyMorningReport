@@ -78,7 +78,7 @@ class AiQuotaCollector(BaseCollector):
             note = ""
         return {
             "provider": "OpenRouter",
-            "balance": balance if balance is not None else -1.0,
+            "balance": balance,  # None 表示无上限（按量计费）
             "currency": "USD",
             "note": note,
         }
