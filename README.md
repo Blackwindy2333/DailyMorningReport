@@ -1,6 +1,6 @@
 <div align="center">
 
-# 📰 每日早报插件 v1.1.0
+# 📰 每日早报插件 v1.2.0
 
 > 每天定时采集新闻、科技热点、行情财经、影视动漫等数据，渲染为精美长图推送至 QQ 群
 
@@ -52,6 +52,8 @@
 
 ✅ **双通道日志** — SDK 插件日志 + 独立滚动文件日志，带 `[run=]` 前缀与分阶段耗时，便于按次排查
 
+✅ **管理员命令** — 目标群内管理员可用 `/dmr` 前缀命令查看/修改配置（仅运行时生效）、立即推送早报
+
 ---
 
 ## 🔧 安装与配置
@@ -80,6 +82,8 @@ git clone https://github.com/Blackwindy2333/DailyMorningReport.git
 | | `admin_qqs` | 管理员 QQ 号列表（AI 额度私聊目标，可多个） | `[]` |
 | | `retry_count` / `retry_interval` | 失败重试次数 / 间隔秒数 | `3` / `5.0` |
 | | `request_timeout` | 请求超时（秒） | `15.0` |
+| | `admin_command_enabled` | 是否启用管理员 `/dmr` 配置命令 | 开 |
+| | `admin_command_prefix` | 管理员命令前缀（大小写不敏感，可更改） | `/dmr` |
 | **模块开关** | `holiday_enabled` / `news_enabled` / `tech_enabled` | 今日提醒 / 新闻速读 / 科技热点 | 开 |
 | | `fx_enabled` / `fuel_enabled` / `gold_enabled` / `dram_enabled` | 汇率 / 油价 / 金价 / DRAM | 开 |
 | | `ai_usage_enabled` | 昨日 AI 消费 | 开 |
@@ -106,7 +110,8 @@ git clone https://github.com/Blackwindy2333/DailyMorningReport.git
 ```
 DailyMorningReport/
 ├── _manifest.json          # 插件清单（manifest v2）
-├── plugin.py               # 主插件类（生命周期、采集→渲染→推送编排）
+├── plugin.py               # 主插件类（生命周期、采集→渲染→推送编排、/dmr 命令监听）
+├── admin_commands.py       # 管理员 /dmr 命令解析与配置应用
 ├── config_models.py        # 配置模型（6 个配置节）
 ├── scheduler.py            # 每日定时调度（时区感知）
 ├── pusher.py               # 推送器（群推送 + 管理员私聊推送）
@@ -160,6 +165,20 @@ DailyMorningReport/
 |:-----|:-----|
 | `/morning_report`（`/早报`） | 手动生成并推送一次早报（群聊/私聊均可用） |
 
+### 管理员命令（/dmr）
+
+仅 `admin_qqs` 中的管理员在 `target_groups` 内群聊发送时生效（前缀大小写不敏感，可通过 `admin_command_prefix` 更改）：
+
+| 命令 | 说明 |
+|:-----|:-----|
+| `/dmr help` | 命令帮助 |
+| `/dmr status` | 查看当前配置摘要（API Key 等敏感字段脱敏） |
+| `/dmr set <键> <值>` | 修改配置项，如 `/dmr set basic.push_time 09:00`、`/dmr set modules.news_enabled false`；true/false→布尔，数字→数值，逗号分隔→列表 |
+| `/dmr reset <键>` | 恢复该配置项默认值 |
+| `/dmr push` | 立即推送一次早报 |
+
+> 注意：`/dmr` 对配置的修改**仅运行时生效**，重启后恢复 WebUI / config.toml 中的配置值；含 `api_key`/`token`/`secret` 的字段不允许通过命令修改，请到 WebUI 设置。
+
 ### 权限与能力
 
 - 使用能力：`send.image`（群/私聊发图）、`send.text`（命令文本响应）、`statistics.local.token_trend`（昨日 AI 消费）
@@ -207,6 +226,10 @@ DailyMorningReport/
 
 ✅ 需 MaiBot 已开启本机统计能力（manifest 已声明 `statistics.local.token_trend`）。
 
+### Q8: /dmr 命令不生效？
+
+✅ 检查 `admin_command_enabled` 是否开启、发送者是否在 `admin_qqs`、所在群是否在 `target_groups`、前缀是否与 `admin_command_prefix` 一致；`/dmr` 修改仅运行时生效，重启后恢复 WebUI 配置值。
+
 ### Q8: 图片乱码/豆腐块？
 
 ✅ 部署环境缺少中文字体时，在系统中安装 Noto Sans CJK 或微软雅黑。
@@ -221,6 +244,16 @@ DailyMorningReport/
 
 <details>
 <summary>点击展开版本历史</summary>
+
+### 版本 1.2.0
+
+**新功能**
+- 管理员配置命令：目标群内管理员可用 `/dmr` 前缀命令（可更改，大小写不敏感）查看/修改配置、立即推送早报
+- 子命令：`help` / `status`（敏感字段脱敏）/ `set <键> <值>`（类型自动转换）/ `reset <键>`（恢复默认）/ `push`
+- 新增配置项 `admin_command_enabled`（总开关）与 `admin_command_prefix`（命令前缀）
+
+**行为调整**
+- `/dmr` 对配置的修改仅运行时生效，重启后恢复 WebUI 配置值；含 `api_key`/`token`/`secret` 的字段禁止通过命令修改
 
 ### 版本 1.1.0
 
@@ -269,6 +302,6 @@ MIT
 
 **如果这个插件对你有帮助，请点亮 ⭐ 支持一下！**
 
-[⬆ 返回顶部](#-每日早报插件-v110)
+[⬆ 返回顶部](#-每日早报插件-v120)
 
 </div>
