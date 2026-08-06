@@ -4,7 +4,7 @@ from DailyMorningReport.config_models import DailyMorningReportConfig
 
 
 def test_default_values(config: DailyMorningReportConfig) -> None:
-    assert config.plugin.config_version == "1.1.0"
+    assert config.plugin.config_version == "1.2.0"
     assert config.basic.enabled is True
     assert config.basic.push_time == "08:00"
     assert config.basic.timezone == "Asia/Shanghai"
@@ -13,6 +13,8 @@ def test_default_values(config: DailyMorningReportConfig) -> None:
     assert config.basic.retry_count == 3
     assert config.basic.retry_interval == 5.0
     assert config.basic.request_timeout == 15.0
+    assert config.basic.admin_command_enabled is True
+    assert config.basic.admin_command_prefix == "/dmr"
 
 
 def test_modules_defaults(config: DailyMorningReportConfig) -> None:
