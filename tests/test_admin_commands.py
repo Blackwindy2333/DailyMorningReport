@@ -202,6 +202,15 @@ async def test_set_rejects_sensitive_key() -> None:
 
 
 @pytest.mark.asyncio
+async def test_set_rejects_ai_quota_key() -> None:
+    """平铺 AI 额度 key 也不允许通过命令修改。"""
+    plugin = _make_plugin(admin_qqs=["123456"], target_groups=["10001"])
+    await plugin._dispatch_admin_command(_msg("/dmr set ai_quota.deepseek sk-test"))
+    assert "敏感信息" in plugin.ctx.sent[-1][0]
+    assert plugin.config.ai_quota.deepseek == ""
+
+
+@pytest.mark.asyncio
 async def test_set_rejects_invalid_value() -> None:
     plugin = _make_plugin(admin_qqs=["123456"], target_groups=["10001"])
     await plugin._dispatch_admin_command(_msg("/dmr set basic.enabled not-a-bool"))
