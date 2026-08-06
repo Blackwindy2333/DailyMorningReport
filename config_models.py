@@ -15,7 +15,7 @@ class PluginSection(PluginConfigBase):
     __ui_icon__ = "info"
     __ui_order__ = 0
 
-    config_version: str = Field(default="1.1.0", description="配置版本")
+    config_version: str = Field(default="1.2.0", description="配置版本")
 
 
 class BasicSection(PluginConfigBase):
@@ -39,6 +39,8 @@ class BasicSection(PluginConfigBase):
     retry_count: int = Field(default=3, description="数据源失败重试次数")
     retry_interval: float = Field(default=5.0, description="重试间隔（秒）")
     request_timeout: float = Field(default=15.0, description="请求超时（秒）")
+    admin_command_enabled: bool = Field(default=True, description="是否启用管理员 /dmr 配置命令")
+    admin_command_prefix: str = Field(default="/dmr", description="管理员命令前缀（大小写不敏感，可更改）")
 
 
 class AiProviderSection(PluginConfigBase):
