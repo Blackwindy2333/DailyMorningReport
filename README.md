@@ -42,6 +42,15 @@ MaiBot 第三方插件：每天定时采集新闻、科技热点、硬件价格�
 | `group1_enabled` / `group2_enabled` / `group3_enabled` | 三组开关 | `true` |
 | `ai_quota_public` | AI 额度是否公开推送到群（开启后不再私发） | `false` |
 
+### 模块开关（关闭的模块不采集、不渲染；组内全部关闭则整图跳过）
+| 字段 | 说明 | 默认值 |
+|---|---|---|
+| `holiday_enabled` / `news_enabled` / `tech_enabled` | 今日提醒 / 新闻速读 / 科技热点 | `true` |
+| `fx_enabled` / `fuel_enabled` / `gold_enabled` / `dram_enabled` | 汇率 / 油价 / 金价 / DRAM | `true` |
+| `ai_usage_enabled` | 昨日 AI 消费 | `true` |
+| `anime_enabled` / `movie_enabled` / `game_enabled` | 新番 / 电影 / 游戏 | `true` |
+| `ai_quota_enabled` | AI 额度（私聊/公开） | `true` |
+
 ### AI 额度（每家独立）
 | 字段 | 说明 |
 |---|---|
@@ -95,14 +104,23 @@ MaiBot 第三方插件：每天定时采集新闻、科技热点、硬件价格�
 - 渲染走 SDK `ctx.render.html2png`，不引入额外渲染依赖
 - 所有 API Key 仅存于配置，日志自动脱敏（`key[:4] + "****"`）
 
+## 日志
+
+双通道并行：
+- **插件日志器**（`ctx.logger`）：沿用 SDK 链路，自动转发到主进程
+- **独立日志文件**：`<data_dir>/logs/daily_morning_report.log`，按天滚动保留 7 天，UTF-8
+
+每次执行带 `[run=<时间戳>]` 前缀，包含采集/渲染/推送分阶段耗时与成功/失败模块数汇总，便于按次检索排查。
+
 ## 故障排查
 
 | 现象 | 处理 |
 |---|---|
 | 某模块显示失败占位卡片 | 查看日志中该模块采集失败原因；重试次数不足可调大 `retry_count` |
+| 某模块完全不出现 | 检查模块开关（`modules.<module>_enabled`）是否误关；组内全部关闭时整图跳过 |
 | 游戏模块不显示 | 检查 `rawg_api_key` 是否填写 |
 | 定时推送不触发 | 检查 `enabled`、`push_time`、`target_groups` 配置 |
-| AI 额度不私发 | 检查 `admin_qq` 是否填写、至少一家厂商已填 key |
+| AI 额度不私发 | 检查 `admin_qq` 是否填写、至少一家厂商已填 key、`ai_quota_enabled` 未关闭 |
 | 昨日 AI 消费不显示 | 需 MaiBot 已开启本机统计能力（manifest 已声明 `statistics.local.token_trend`） |
 | 油价地区不生效 | 检查 `fuel_regions` 填写的地区名是否与油价站点一致（如 广东/上海/北京） |
 | 电影显示（TMDB） | 豆瓣被反爬时自动降级 TMDB，需配置 `tmdb_api_key` 否则该模块失败占位 |
