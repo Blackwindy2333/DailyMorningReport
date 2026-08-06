@@ -260,6 +260,35 @@ def ai_quota_card(result: CollectorResult, public: bool = False) -> str:
     return card_wrapper(result.module_id, "AI 额度", result.fetched_at, inner)
 
 
+def ai_usage_card(result: CollectorResult) -> str:
+    """昨日 AI 消费卡片。"""
+    if result.status == "error":
+        return error_card(result.module_id, "昨日 AI 消费", result.error_msg)
+    rows = "".join(
+        f"    <tr><td>{_esc(item['model'])}</td>"
+        f'<td class="num">{item["calls"]}</td>'
+        f'<td class="num">{_fmt_tokens(item["total_tokens"])}</td></tr>'
+        for item in result.data.get("models", [])
+    )
+    totals = result.data.get("totals") or {}
+    inner = f"""    <table>
+      <tr><th>模型</th><th class="num">调用</th><th class="num">Tokens</th></tr>
+{rows}
+    </table>
+    <div class="tip">昨日合计 {totals.get("calls", 0)} 次调用，共消耗 {_fmt_tokens(totals.get("total_tokens", 0))} Tokens</div>"""
+    return card_wrapper(
+        result.module_id, f"昨日 AI 消费（{_esc(result.data.get('date') or '')}）", result.fetched_at, inner
+    )
+
+
+def _fmt_tokens(value: Any) -> str:
+    """Token 数量格式化（千分位）。"""
+    try:
+        return f"{int(value):,}"
+    except (TypeError, ValueError):
+        return "-"
+
+
 def _quota_balance(balance: Any) -> str:
     """余额显示：None（无上限）显示为'无上限'。"""
     if balance is None:
@@ -339,16 +368,44 @@ def _change_class(change: float) -> str:
     return ""
 
 
+def holiday_card(result: CollectorResult, history_limit: int = 6) -> str:
+    """今日节日/纪念日卡片（组 1 顶部）。"""
+    if result.status == "error":
+        return error_card(result.module_id, "今日提醒", result.error_msg)
+    holidays = result.data.get("holidays") or []
+    history = result.data.get("history") or []
+    lines: list[str] = []
+    if holidays:
+        lines.append(f'    <div class="tip">🎉 今日节日：{"、".join(_esc(h) for h in holidays)}</div>')
+    history_lines = []
+    for event in history[:history_limit]:
+        year = f"[{_esc(event['year'])}年]" if event.get("year") else ""
+        history_lines.append(
+            f'    <div class="news-item"><span class="idx">{len(history_lines) + 1}</span>'
+            f'<span class="txt">{year} {_esc(event["title"])}</span></div>'
+        )
+    inner = "\n".join(lines + history_lines)
+    if not inner.strip():
+        inner = '    <div class="tip">今日无特别节日或历史事件</div>'
+    return card_wrapper(result.module_id, "今日提醒", result.fetched_at, inner)
+
+
 def render_group1(
     news_result: CollectorResult,
     tech_result: CollectorResult,
+    holiday_result: CollectorResult | None,
     config: Any,
 ) -> str:
-    """组 1 资讯速览：新闻 + 科技。"""
-    cards = [
-        news_card(news_result, limit=int(getattr(config.render, "news_count", 10))),
-        tech_card(tech_result, limit=int(getattr(config.render, "tech_count", 15))),
-    ]
+    """组 1 资讯速览：节日提醒 + 新闻 + 科技。"""
+    cards = []
+    if holiday_result is not None:
+        cards.append(holiday_card(holiday_result))
+    cards.extend(
+        [
+            news_card(news_result, limit=int(getattr(config.render, "news_count", 10))),
+            tech_card(tech_result, limit=int(getattr(config.render, "tech_count", 15))),
+        ]
+    )
     return render_page(
         title="每日早报 · 资讯速览",
         subtitle="新闻速读与科技热点",
@@ -363,9 +420,10 @@ def render_group2(
     gold_result: CollectorResult,
     dram_result: CollectorResult,
     ai_quota_result: CollectorResult | None,
+    ai_usage_result: CollectorResult | None,
     config: Any,
 ) -> str:
-    """组 2 行情财经：汇率 + 油价 + 金价 + DRAM（+ 公开的 AI 额度）。"""
+    """组 2 行情财经：汇率 + 油价 + 金价 + DRAM（+ 公开 AI 额度 + 昨日 AI 消费）。"""
     cards = [
         fx_card(fx_result),
         fuel_card(fuel_result),
@@ -374,6 +432,8 @@ def render_group2(
     ]
     if ai_quota_result is not None:
         cards.append(ai_quota_card(ai_quota_result, public=True))
+    if ai_usage_result is not None:
+        cards.append(ai_usage_card(ai_usage_result))
     return render_page(
         title="每日早报 · 行情财经",
         subtitle="汇率、油价、金价与硬件行情",

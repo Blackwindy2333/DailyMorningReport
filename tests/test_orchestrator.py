@@ -50,6 +50,7 @@ class FakeCtx:
 
 
 async def _make_plugin(config) -> DailyMorningReportPlugin:
+    from DailyMorningReport.archive import ArchiveManager
     from DailyMorningReport.pusher import Pusher
 
     plugin = DailyMorningReportPlugin()
@@ -65,6 +66,7 @@ async def _make_plugin(config) -> DailyMorningReportPlugin:
     )()
     plugin._ctx = ctx
     plugin._pusher = Pusher(ctx, ctx.logger)
+    plugin._archive = ArchiveManager(Path("."), ctx.logger)
     return plugin
 
 

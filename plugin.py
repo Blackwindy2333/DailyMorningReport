@@ -15,6 +15,7 @@ from maibot_sdk import CONFIG_RELOAD_SCOPE_SELF, Command, MaiBotPlugin
 
 import asyncio
 
+from .archive import ArchiveManager
 from .collectors import COLLECTORS
 from .collectors.base import CollectorResult
 from .config_models import DailyMorningReportConfig
@@ -34,6 +35,7 @@ class DailyMorningReportPlugin(MaiBotPlugin):
         self._collectors: list[Any] = []
         self._cover_manager: CoverManager | None = None
         self._pusher: Pusher | None = None
+        self._archive: ArchiveManager | None = None
         self._running_lock = asyncio.Lock()
 
     # ── 生命周期 ──
@@ -43,6 +45,7 @@ class DailyMorningReportPlugin(MaiBotPlugin):
         self._cover_manager = CoverManager(
             self.ctx.paths.runtime_dir, self.ctx.logger, self.config.basic.request_timeout
         )
+        self._archive = ArchiveManager(self.ctx.paths.data_dir, self.ctx.logger)
         self._scheduler = DailyScheduler(
             timezone=self.config.basic.timezone,
             push_time=self.config.basic.push_time,
@@ -84,7 +87,14 @@ class DailyMorningReportPlugin(MaiBotPlugin):
 
     def _build_collectors(self) -> list[Any]:
         """按当前配置实例化采集器（每次执行重建，配置变化即生效）。"""
-        return [cls(self.config, self.ctx.logger) for cls in COLLECTORS.values()]
+        collectors = []
+        for cls in COLLECTORS.values():
+            # ai_usage 依赖 ctx.statistics，单独注入上下文
+            if cls.__name__ == "AiUsageCollector":
+                collectors.append(cls(self.config, self.ctx.logger, ctx=self.ctx))
+            else:
+                collectors.append(cls(self.config, self.ctx.logger))
+        return collectors
 
     async def _close_collectors(self) -> None:
         for collector in self._collectors:
@@ -133,6 +143,10 @@ class DailyMorningReportPlugin(MaiBotPlugin):
         if self.config.basic.admin_qq and private_images:
             for image in private_images:
                 await self._pusher.push_private_image(image, self.config.basic.admin_qq)
+
+        # 4. 存档（早报历史）
+        self._archive.save(results)
+
         await self._close_collectors()
         self.ctx.logger.info("每日早报生成完成")
 
@@ -142,16 +156,17 @@ class DailyMorningReportPlugin(MaiBotPlugin):
         groups = cfg.groups
         images: dict[str, list[str]] = {"groups": [], "private": []}
 
-        # 组 1：资讯速览
+        # 组 1：资讯速览（含节日提醒）
         if groups.group1_enabled:
             html = render_group1(
                 results.get("news", self._missing("news")),
                 results.get("tech", self._missing("tech")),
+                results.get("holiday", self._missing("holiday")),
                 cfg,
             )
             images["groups"].append(await self._render_image(html, "group1"))
 
-        # 组 2：行情财经
+        # 组 2：行情财经（含昨日 AI 消费）
         if groups.group2_enabled:
             ai_quota_public = results.get("ai_quota") if groups.ai_quota_public else None
             html = render_group2(
@@ -160,6 +175,7 @@ class DailyMorningReportPlugin(MaiBotPlugin):
                 results.get("gold", self._missing("gold")),
                 results.get("dram", self._missing("dram")),
                 ai_quota_public,
+                results.get("ai_usage", self._missing("ai_usage")),
                 cfg,
             )
             images["groups"].append(await self._render_image(html, "group2"))

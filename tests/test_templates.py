@@ -179,10 +179,19 @@ def test_html_escaping() -> None:
 
 
 def test_render_group1(config) -> None:
-    html = render_group1(_ok("news", {"news": ["n1"]}), _ok("tech", {"titles": ["t1"]}), config)
+    html = render_group1(_ok("news", {"news": ["n1"]}), _ok("tech", {"titles": ["t1"]}), None, config)
     assert "每日早报 · 资讯速览" in html
     assert "n1" in html
     assert "t1" in html
+
+
+def test_render_group1_with_holiday(config) -> None:
+    holiday = _ok(
+        "holiday", {"holidays": ["国庆节"], "history": [{"title": "历史事件", "year": "1949", "event_type": "event"}]}
+    )
+    html = render_group1(_ok("news", {"news": ["n1"]}), _ok("tech", {"titles": ["t1"]}), holiday, config)
+    assert "国庆节" in html
+    assert "历史事件" in html
 
 
 def test_render_group2_with_public_quota(config) -> None:
@@ -191,9 +200,19 @@ def test_render_group2_with_public_quota(config) -> None:
     gold = _ok("gold", {"metals": [{"name": "黄金", "price": 900, "unit": "元/克"}]})
     dram = _ok("dram", {"items": [{"name": "DDR5", "high": 1, "low": 1, "avg": 1, "change": 0}]})
     quota = _ok("ai_quota", {"quotas": [{"provider": "Kimi", "balance": 1.0, "currency": "CNY", "note": ""}]})
-    html = render_group2(fx, fuel, gold, dram, quota, config)
+    usage = _ok(
+        "ai_usage",
+        {
+            "date": "2026-08-05",
+            "models": [{"model": "gpt-4o", "calls": 3, "total_tokens": 500}],
+            "totals": {"calls": 3, "total_tokens": 500},
+        },
+    )
+    html = render_group2(fx, fuel, gold, dram, quota, usage, config)
     assert "每日早报 · 行情财经" in html
     assert "Kimi" in html
+    assert "gpt-4o" in html
+    assert "昨日 AI 消费" in html
 
 
 def test_render_group3(config) -> None:
