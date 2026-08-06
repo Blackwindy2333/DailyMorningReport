@@ -15,7 +15,7 @@ class PluginSection(PluginConfigBase):
     __ui_icon__ = "info"
     __ui_order__ = 0
 
-    config_version: str = Field(default="1.2.0", description="配置版本")
+    config_version: str = Field(default="1.3.0", description="配置版本")
 
 
 class BasicSection(PluginConfigBase):
@@ -43,24 +43,17 @@ class BasicSection(PluginConfigBase):
     admin_command_prefix: str = Field(default="/dmr", description="管理员命令前缀（大小写不敏感，可更改）")
 
 
-class AiProviderSection(PluginConfigBase):
-    """单个 AI 厂商额度配置"""
-
-    enabled: bool = Field(default=True, description="是否启用该厂商额度查询")
-    api_key: str = Field(default="", description="API Key（留空则跳过该厂商）")
-
-
 class AiQuotaSection(PluginConfigBase):
-    """AI 额度（4 家厂商）"""
+    """AI 额度（4 家厂商，key 非空即启用）"""
 
     __ui_label__ = "AI 额度"
     __ui_icon__ = "account_balance_wallet"
     __ui_order__ = 3
 
-    openrouter: AiProviderSection = Field(default_factory=AiProviderSection)
-    deepseek: AiProviderSection = Field(default_factory=AiProviderSection)
-    kimi: AiProviderSection = Field(default_factory=AiProviderSection)
-    siliconflow: AiProviderSection = Field(default_factory=AiProviderSection)
+    openrouter: str = Field(default="", description="OpenRouter API Key（留空则跳过该厂商）")
+    deepseek: str = Field(default="", description="DeepSeek API Key（留空则跳过该厂商）")
+    kimi: str = Field(default="", description="Kimi API Key（留空则跳过该厂商）")
+    siliconflow: str = Field(default="", description="SiliconFlow API Key（留空则跳过该厂商）")
 
 
 class ExternalApiSection(PluginConfigBase):
