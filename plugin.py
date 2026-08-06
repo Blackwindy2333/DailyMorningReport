@@ -12,12 +12,13 @@
 
 from __future__ import annotations
 
-import asyncio
-import datetime as dt
-import time
 from typing import Any
 
 from maibot_sdk import CONFIG_RELOAD_SCOPE_SELF, Command, MaiBotPlugin
+
+import asyncio
+import datetime as dt
+import time
 
 from .archive import ArchiveManager
 from .collectors import COLLECTORS
@@ -202,6 +203,13 @@ class DailyMorningReportPlugin(MaiBotPlugin):
         if not images["groups"] and not images["private"]:
             self.ctx.logger.error("[run=%s] 本次早报无任何可推送图片", run_id)
             await self._close_collectors()
+            log_run_summary(
+                self.ctx.logger,
+                run_id,
+                time.perf_counter() - started,
+                ok_modules=ok_modules,
+                error_modules=error_modules,
+            )
             return
 
         # 3. 推送

@@ -19,7 +19,6 @@ _LOG_FORMAT = "%(asctime)s %(levelname)s [%(name)s] [%(module)s:%(lineno)d] %(me
 _ROTATE_WHEN = "midnight"
 _ROTATE_INTERVAL = 1
 _BACKUP_COUNT = 7
-_MAX_BYTES_CHECK = 5 * 1024 * 1024  # 单日文件超限告警阈值（滚动由时间驱动）
 
 
 def setup_plugin_file_logging(
@@ -60,13 +59,6 @@ def close_file_handler(logger: logging.Logger) -> None:
         if getattr(handler, "_daily_morning_file_handler", False):
             handler.close()
             logger.removeHandler(handler)
-
-
-def mask_key(api_key: str) -> str:
-    """日志脱敏：仅保留前 4 位，其余打码。"""
-    if not api_key:
-        return ""
-    return api_key[:4] + "****"
 
 
 def log_run_summary(

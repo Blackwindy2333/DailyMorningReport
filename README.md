@@ -102,7 +102,7 @@ MaiBot 第三方插件：每天定时采集新闻、科技热点、硬件价格�
 
 - 使用能力：`send.image`（群/私聊发图）、`send.text`（命令文本响应）、`statistics.local.token_trend`（昨日 AI 消费）
 - 渲染走 SDK `ctx.render.html2png`，不引入额外渲染依赖
-- 所有 API Key 仅存于配置，日志自动脱敏（`key[:4] + "****"`）
+- 所有 API Key 仅存于配置；URL 中的敏感参数（如 RAWG key）在错误消息/日志中自动剥离，Authorization 头中的 key 不入日志
 
 ## 日志
 

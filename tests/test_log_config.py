@@ -1,11 +1,10 @@
-"""日志系统测试：文件 handler 挂载/幂等/关闭、脱敏、汇总日志。"""
+"""日志系统测试：文件 handler 挂载/幂等/关闭、汇总日志。"""
 
 import logging
 
 from DailyMorningReport.log_config import (
     close_file_handler,
     log_run_summary,
-    mask_key,
     setup_plugin_file_logging,
 )
 
@@ -52,12 +51,6 @@ def test_close_without_setup(tmp_path) -> None:
     logger = _new_logger("nohandler")
     close_file_handler(logger)  # 不抛异常
     assert logger.handlers == []
-
-
-def test_mask_key() -> None:
-    assert mask_key("sk-abcdef123456") == "sk-a****"
-    assert mask_key("") == ""
-    assert mask_key("abc") == "abc****"
 
 
 def test_log_run_summary_emits(tmp_path, caplog) -> None:
