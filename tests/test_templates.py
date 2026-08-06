@@ -179,17 +179,26 @@ def test_html_escaping() -> None:
 
 
 def test_render_group1(config) -> None:
-    html = render_group1(_ok("news", {"news": ["n1"]}), _ok("tech", {"titles": ["t1"]}), None, config)
+    html = render_group1(_ok("news", {"news": ["n1"]}), _ok("tech", {"titles": ["t1"]}), None, {"news", "tech"}, config)
     assert "每日早报 · 资讯速览" in html
     assert "n1" in html
     assert "t1" in html
+
+
+def test_render_group1_disabled_module_skipped(config) -> None:
+    """禁用的模块不渲染其卡片。"""
+    html = render_group1(_ok("news", {"news": ["n1"]}), _ok("tech", {"titles": ["t1"]}), None, {"news"}, config)
+    assert "n1" in html
+    assert "t1" not in html  # tech 被禁用，卡片不渲染
 
 
 def test_render_group1_with_holiday(config) -> None:
     holiday = _ok(
         "holiday", {"holidays": ["国庆节"], "history": [{"title": "历史事件", "year": "1949", "event_type": "event"}]}
     )
-    html = render_group1(_ok("news", {"news": ["n1"]}), _ok("tech", {"titles": ["t1"]}), holiday, config)
+    html = render_group1(
+        _ok("news", {"news": ["n1"]}), _ok("tech", {"titles": ["t1"]}), holiday, {"news", "tech", "holiday"}, config
+    )
     assert "国庆节" in html
     assert "历史事件" in html
 
@@ -208,7 +217,8 @@ def test_render_group2_with_public_quota(config) -> None:
             "totals": {"total_tokens": 500},
         },
     )
-    html = render_group2(fx, fuel, gold, dram, quota, usage, config)
+    enabled = {"fx", "fuel", "gold", "dram", "ai_quota", "ai_usage"}
+    html = render_group2(fx, fuel, gold, dram, quota, usage, enabled, config)
     assert "每日早报 · 行情财经" in html
     assert "Kimi" in html
     assert "gpt-4o" in html
@@ -221,7 +231,7 @@ def test_render_group3(config) -> None:
         "movie", {"movies": [{"name": "电影A", "date": "", "genre": "", "region": "", "wish": "", "image_url": ""}]}
     )
     game = _ok("game", {"games": [{"name": "游戏A", "released": "", "platforms": ["PC"], "image_url": ""}]})
-    html = render_group3(anime, movie, game, {}, config)
+    html = render_group3(anime, movie, game, {}, {"anime", "movie", "game"}, config)
     assert "每日早报 · 文娱生活" in html
     assert "新番A" in html
     assert "电影A" in html

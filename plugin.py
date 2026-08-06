@@ -192,6 +192,13 @@ class DailyMorningReportPlugin(MaiBotPlugin):
         render_started = time.perf_counter()
         images = await self._render(results)
         render_seconds = time.perf_counter() - render_started
+        self.ctx.logger.info(
+            "[run=%s] 渲染完成: 耗时 %.2fs, 群图 %d 张, 私聊图 %d 张",
+            run_id,
+            render_seconds,
+            len(images["groups"]),
+            len(images["private"]),
+        )
         if not images["groups"] and not images["private"]:
             self.ctx.logger.error("[run=%s] 本次早报无任何可推送图片", run_id)
             await self._close_collectors()
