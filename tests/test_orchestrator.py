@@ -83,7 +83,7 @@ async def test_orchestrator_collect_failure_isolated() -> None:
     """单个采集器失败不影响其他模块与整体推送。"""
     config = DailyMorningReportConfig()
     config.basic.target_groups = ["10001"]
-    config.basic.admin_qq = "123456"
+    config.basic.admin_qqs = ["123456"]
     config.ai_quota.openrouter.api_key = "sk-or-1"
     plugin = await _make_plugin(config)
 
@@ -115,7 +115,7 @@ async def test_orchestrator_ai_quota_private_and_public() -> None:
     """ai_quota：默认私发管理员；ai_quota_public=true 时并入群图。"""
     config = DailyMorningReportConfig()
     config.basic.target_groups = ["10001"]
-    config.basic.admin_qq = "123456"
+    config.basic.admin_qqs = ["123456"]
     config.ai_quota.openrouter.api_key = "sk-or-1"
     plugin = await _make_plugin(config)
 
@@ -138,7 +138,7 @@ async def test_orchestrator_ai_quota_private_and_public() -> None:
     assert len(images["private"]) == 1  # 私发管理员
 
     # public=true 时并入组 2
-    config.groups.ai_quota_public = True
+    config.modules.ai_quota_public = True
     images2 = await plugin._render(results)
     assert len(images2["groups"]) == 3
     assert len(images2["private"]) == 0  # 已公开，不再私发
@@ -149,7 +149,7 @@ async def test_full_execute_pushes_to_groups() -> None:
     """完整 _execute 链路：渲染 3 组图并推送到目标群。"""
     config = DailyMorningReportConfig()
     config.basic.target_groups = ["10001", "10002"]
-    config.basic.admin_qq = ""
+    config.basic.admin_qqs = []
     plugin = await _make_plugin(config)
     plugin._collectors = []
 
@@ -190,3 +190,52 @@ async def test_full_execute_pushes_to_groups() -> None:
     assert len(plugin.ctx.sent_images) == 6
     sent_streams = {stream_id for _, stream_id in plugin.ctx.sent_images}
     assert sent_streams == {"group-10001", "group-10002"}
+
+
+@pytest.mark.asyncio
+async def test_full_execute_private_to_multiple_admins() -> None:
+    """多管理员：每张私聊图推送给 admin_qqs 中每个 QQ。"""
+    config = DailyMorningReportConfig()
+    config.basic.target_groups = []
+    config.basic.admin_qqs = ["111", "222"]
+    config.ai_quota.openrouter.api_key = "sk-or-1"
+    plugin = await _make_plugin(config)
+    plugin._collectors = []
+
+    async def fake_collect(self) -> CollectorResult:
+        module_id = self.module_id
+        data_map = {
+            "news": {"news": ["n"], "tip": ""},
+            "tech": {"titles": ["t"]},
+            "fx": {"rates": []},
+            "fuel": {"regions": [{"region": "北京", "items": []}], "trend": {}},
+            "gold": {"metals": []},
+            "dram": {"items": []},
+            "anime": {"animes": []},
+            "movie": {"movies": []},
+            "game": {"games": []},
+            "ai_quota": {"quotas": [{"provider": "OpenRouter", "balance": 3.7, "currency": "USD", "note": ""}]},
+        }
+        return CollectorResult(module_id=module_id, status="ok", data=data_map.get(module_id, {}))
+
+    class FakeCollector:
+        module_id = ""
+
+        async def collect(self):  # noqa: D102
+            return await fake_collect(self)
+
+        async def close(self):  # noqa: D102
+            pass
+
+    plugin._build_collectors = lambda: [
+        type("C", (FakeCollector,), {"module_id": mid})()
+        for mid in ("news", "tech", "fx", "fuel", "gold", "dram", "anime", "movie", "game", "ai_quota")
+    ]
+    plugin._running_lock = asyncio.Lock()
+
+    await plugin._execute()
+
+    # 1 张私聊图 × 2 个管理员 = 2 次私聊发送
+    private_streams = {stream_id for _, stream_id in plugin.ctx.sent_images if stream_id.startswith("user-")}
+    assert private_streams == {"user-111", "user-222"}
+    assert len(plugin.ctx.sent_images) == 2

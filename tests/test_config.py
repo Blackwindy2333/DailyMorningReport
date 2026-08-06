@@ -4,21 +4,36 @@ from DailyMorningReport.config_models import DailyMorningReportConfig
 
 
 def test_default_values(config: DailyMorningReportConfig) -> None:
+    assert config.plugin.config_version == "1.1.0"
     assert config.basic.enabled is True
     assert config.basic.push_time == "08:00"
     assert config.basic.timezone == "Asia/Shanghai"
     assert config.basic.target_groups == []
-    assert config.basic.admin_qq == ""
+    assert config.basic.admin_qqs == []
     assert config.basic.retry_count == 3
     assert config.basic.retry_interval == 5.0
     assert config.basic.request_timeout == 15.0
 
 
-def test_group_defaults(config: DailyMorningReportConfig) -> None:
-    assert config.groups.group1_enabled is True
-    assert config.groups.group2_enabled is True
-    assert config.groups.group3_enabled is True
-    assert config.groups.ai_quota_public is False
+def test_modules_defaults(config: DailyMorningReportConfig) -> None:
+    """模块开关默认全开；ai_quota_public 默认私有；已无分组开关。"""
+    assert config.modules.ai_quota_public is False
+    for field in (
+        "holiday_enabled",
+        "news_enabled",
+        "tech_enabled",
+        "fx_enabled",
+        "fuel_enabled",
+        "gold_enabled",
+        "dram_enabled",
+        "ai_usage_enabled",
+        "anime_enabled",
+        "movie_enabled",
+        "game_enabled",
+        "ai_quota_enabled",
+    ):
+        assert getattr(config.modules, field) is True
+    assert not hasattr(config, "groups")
 
 
 def test_ai_quota_nested_defaults(config: DailyMorningReportConfig) -> None:
@@ -49,7 +64,9 @@ def test_custom_values_override() -> None:
     cfg = DailyMorningReportConfig()
     cfg.basic.push_time = "09:30"
     cfg.basic.target_groups = ["10001", "10002"]
+    cfg.basic.admin_qqs = ["111", "222"]
     cfg.ai_quota.deepseek.api_key = "sk-test"
     assert cfg.basic.push_time == "09:30"
     assert cfg.basic.target_groups == ["10001", "10002"]
+    assert cfg.basic.admin_qqs == ["111", "222"]
     assert cfg.ai_quota.deepseek.api_key == "sk-test"

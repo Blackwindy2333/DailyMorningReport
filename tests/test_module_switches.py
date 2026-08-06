@@ -143,7 +143,7 @@ async def test_partial_group_disabled_renders_remaining() -> None:
 async def test_ai_quota_private_skipped_when_disabled() -> None:
     """ai_quota 禁用 → 私聊图不渲染。"""
     config = DailyMorningReportConfig()
-    config.basic.admin_qq = "123456"
+    config.basic.admin_qqs = ["123456"]
     config.ai_quota.openrouter.api_key = "sk-test"
     config.modules.ai_quota_enabled = False
     plugin = _make_plugin_with_render(config)
@@ -155,7 +155,7 @@ async def test_ai_quota_private_skipped_when_disabled() -> None:
 async def test_ai_quota_private_rendered_when_enabled() -> None:
     """ai_quota 启用且配置 key → 私聊图渲染。"""
     config = DailyMorningReportConfig()
-    config.basic.admin_qq = "123456"
+    config.basic.admin_qqs = ["123456"]
     config.ai_quota.openrouter.api_key = "sk-test"
     plugin = _make_plugin_with_render(config)
     images = await plugin._render(_all_results())
@@ -166,7 +166,7 @@ async def test_ai_quota_private_rendered_when_enabled() -> None:
 async def test_ai_quota_public_requires_switch() -> None:
     """ai_quota_public=true 但 ai_quota 模块禁用 → 组 2 不含额度卡。"""
     config = DailyMorningReportConfig()
-    config.groups.ai_quota_public = True
+    config.modules.ai_quota_public = True
     config.modules.ai_quota_enabled = False
     plugin = _make_plugin_with_render(config)
     images = await plugin._render(_all_results())
