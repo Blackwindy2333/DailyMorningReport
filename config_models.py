@@ -15,7 +15,7 @@ class PluginSection(PluginConfigBase):
     __ui_icon__ = "info"
     __ui_order__ = 0
 
-    config_version: str = Field(default="1.0.0", description="配置版本")
+    config_version: str = Field(default="1.1.0", description="配置版本")
 
 
 class BasicSection(PluginConfigBase):
@@ -32,23 +32,13 @@ class BasicSection(PluginConfigBase):
         default_factory=list,
         description="推送目标QQ群号列表（留空则不推送群消息）",
     )
-    admin_qq: str = Field(default="", description="管理员QQ号（AI额度私聊目标）")
+    admin_qqs: List[str] = Field(
+        default_factory=list,
+        description="管理员QQ号列表（AI额度私聊目标，可多个）",
+    )
     retry_count: int = Field(default=3, description="数据源失败重试次数")
     retry_interval: float = Field(default=5.0, description="重试间隔（秒）")
     request_timeout: float = Field(default=15.0, description="请求超时（秒）")
-
-
-class GroupSection(PluginConfigBase):
-    """分组开关"""
-
-    __ui_label__ = "分组开关"
-    __ui_icon__ = "view_agenda"
-    __ui_order__ = 2
-
-    group1_enabled: bool = Field(default=True, description="资讯速览（新闻+科技）")
-    group2_enabled: bool = Field(default=True, description="行情财经（汇率+油价+金价+DRAM）")
-    group3_enabled: bool = Field(default=True, description="文娱生活（新番+电影+游戏）")
-    ai_quota_public: bool = Field(default=False, description="AI额度是否公开推送到群（默认仅私发管理员）")
 
 
 class AiProviderSection(PluginConfigBase):
@@ -111,7 +101,7 @@ class ModulesSection(PluginConfigBase):
 
     __ui_label__ = "模块开关"
     __ui_icon__ = "toggle_on"
-    __ui_order__ = 6
+    __ui_order__ = 2
 
     holiday_enabled: bool = Field(default=True, description="今日提醒（节日/历史）")
     news_enabled: bool = Field(default=True, description="新闻速读")
@@ -128,6 +118,7 @@ class ModulesSection(PluginConfigBase):
     game_enabled: bool = Field(default=True, description="游戏发售")
 
     ai_quota_enabled: bool = Field(default=True, description="AI 额度（私聊/公开）")
+    ai_quota_public: bool = Field(default=False, description="AI额度是否公开推送到群（默认仅私发管理员）")
 
 
 class DailyMorningReportConfig(PluginConfigBase):
@@ -137,7 +128,6 @@ class DailyMorningReportConfig(PluginConfigBase):
 
     plugin: PluginSection = Field(default_factory=PluginSection)
     basic: BasicSection = Field(default_factory=BasicSection)
-    groups: GroupSection = Field(default_factory=GroupSection)
     modules: ModulesSection = Field(default_factory=ModulesSection)
     ai_quota: AiQuotaSection = Field(default_factory=AiQuotaSection)
     external_api: ExternalApiSection = Field(default_factory=ExternalApiSection)
