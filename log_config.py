@@ -48,8 +48,8 @@ def setup_plugin_file_logging(
     handler.suffix = "%Y-%m-%d"
     handler.setFormatter(logging.Formatter(_LOG_FORMAT))
     handler.setLevel(level)
-    # 标记位：识别本插件挂载的文件 handler
-    setattr(handler, "_daily_morning_file_handler", True)
+    # 标记位：识别本插件挂载的文件 handler（动态属性，供幂等检查与关闭）
+    handler._daily_morning_file_handler = True
     logger.addHandler(handler)
     return handler
 
@@ -82,8 +82,7 @@ def log_run_summary(
 ) -> None:
     """执行结束汇总日志（结构化、便于按 run_id 检索）。"""
     logger.info(
-        "[run=%s] 早报执行完成: 总耗时 %.2fs, 成功模块 %d, 失败模块 %d, "
-        "群图 %d 张, 私聊图 %d 张, 推送群 %d 个",
+        "[run=%s] 早报执行完成: 总耗时 %.2fs, 成功模块 %d, 失败模块 %d, 群图 %d 张, 私聊图 %d 张, 推送群 %d 个",
         run_id,
         total_seconds,
         ok_modules,
