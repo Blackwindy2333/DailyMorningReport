@@ -106,6 +106,30 @@ class RenderSection(PluginConfigBase):
     )
 
 
+class ModulesSection(PluginConfigBase):
+    """模块开关（关闭的模块不采集、不渲染；组内全部关闭则整图跳过）"""
+
+    __ui_label__ = "模块开关"
+    __ui_icon__ = "toggle_on"
+    __ui_order__ = 6
+
+    holiday_enabled: bool = Field(default=True, description="今日提醒（节日/历史）")
+    news_enabled: bool = Field(default=True, description="新闻速读")
+    tech_enabled: bool = Field(default=True, description="科技热点")
+
+    fx_enabled: bool = Field(default=True, description="实时汇率")
+    fuel_enabled: bool = Field(default=True, description="油价")
+    gold_enabled: bool = Field(default=True, description="金价")
+    dram_enabled: bool = Field(default=True, description="DRAM 价格")
+    ai_usage_enabled: bool = Field(default=True, description="昨日 AI 消费")
+
+    anime_enabled: bool = Field(default=True, description="新番放送")
+    movie_enabled: bool = Field(default=True, description="电影")
+    game_enabled: bool = Field(default=True, description="游戏发售")
+
+    ai_quota_enabled: bool = Field(default=True, description="AI 额度（私聊/公开）")
+
+
 class DailyMorningReportConfig(PluginConfigBase):
     """每日早报完整配置"""
 
@@ -114,6 +138,7 @@ class DailyMorningReportConfig(PluginConfigBase):
     plugin: PluginSection = Field(default_factory=PluginSection)
     basic: BasicSection = Field(default_factory=BasicSection)
     groups: GroupSection = Field(default_factory=GroupSection)
+    modules: ModulesSection = Field(default_factory=ModulesSection)
     ai_quota: AiQuotaSection = Field(default_factory=AiQuotaSection)
     external_api: ExternalApiSection = Field(default_factory=ExternalApiSection)
     render: RenderSection = Field(default_factory=RenderSection)
