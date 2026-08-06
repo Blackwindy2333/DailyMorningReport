@@ -11,9 +11,9 @@ from __future__ import annotations
 
 from typing import Any
 
-import asyncio
-
 from maibot_sdk import CONFIG_RELOAD_SCOPE_SELF, Command, MaiBotPlugin
+
+import asyncio
 
 from .collectors import COLLECTORS
 from .collectors.base import CollectorResult

@@ -97,7 +97,6 @@ class BaseCollector:
                     await asyncio.sleep(self._retry_interval * (2**attempt))
                     continue
                 raise CollectorError(f"请求失败: {exc}") from exc
-        raise CollectorError(f"请求失败: {safe_url}")
 
     async def fetch_json(self, url: str, **kwargs: Any) -> dict[str, Any]:
         """GET + JSON 解析，带重试；失败抛 CollectorError。"""
