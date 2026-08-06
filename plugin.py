@@ -15,8 +15,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from maibot_sdk import CONFIG_RELOAD_SCOPE_SELF, Command, EventHandler, MaiBotPlugin
-from maibot_sdk.types import EventType
+from maibot_sdk import CONFIG_RELOAD_SCOPE_SELF, Command, HookHandler, MaiBotPlugin
+from maibot_sdk.types import HookMode
 
 import asyncio
 import datetime as dt
@@ -391,14 +391,18 @@ class DailyMorningReportPlugin(MaiBotPlugin):
 
     # ── 管理员 /dmr 命令 ──
 
-    @EventHandler(
-        "dmr_admin_commands",
+    @HookHandler(
+        "chat.receive.after_process",
+        name="dmr_admin_commands",
         description="管理员 /dmr 配置命令（目标群内查看/修改配置、立即推送）",
-        event_type=EventType.ON_MESSAGE_PRE_PROCESS,
-        weight=100,
+        mode=HookMode.OBSERVE,
     )
     async def on_admin_command_message(self, message: dict, **kwargs: Any) -> None:
-        """监听目标群内管理员发送的 /dmr 命令（非阻塞旁路，不拦截消息链）。"""
+        """监听目标群内管理员发送的 /dmr 命令（OBSERVE 旁路，后台执行不阻塞消息链）。
+
+        当前 MaiBot Host 已停用消息事件分发（ON_MESSAGE 桥接被注释），
+        入站消息只走 chat.receive.* Hook，故采用 OBSERVE 模式订阅。
+        """
         del kwargs
         try:
             await self._dispatch_admin_command(message)

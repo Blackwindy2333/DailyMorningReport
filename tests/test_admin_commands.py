@@ -112,6 +112,16 @@ class FakeCtx:
         return True
 
 
+def test_admin_command_wired_as_observe_hook() -> None:
+    """监听器注册为 chat.receive.after_process 的 OBSERVE Hook（Host 已停用消息事件分发）。"""
+    from maibot_sdk.types import HookMode
+
+    info = DailyMorningReportPlugin.on_admin_command_message.__maibot_component_info__
+    assert info.hook == "chat.receive.after_process"
+    assert info.name == "dmr_admin_commands"
+    assert info.mode == HookMode.OBSERVE
+
+
 def _make_plugin(**basic_overrides) -> DailyMorningReportPlugin:
     config = DailyMorningReportConfig()
     data = config.model_dump()
