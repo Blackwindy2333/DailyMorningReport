@@ -6,12 +6,22 @@
 from maibot_sdk import Field, PluginConfigBase
 
 
+class PluginSection(PluginConfigBase):
+    """插件基础配置（SDK 强制要求含 config_version）"""
+
+    __ui_label__ = "插件信息"
+    __ui_icon__ = "info"
+    __ui_order__ = 0
+
+    config_version: str = Field(default="1.0.0", description="配置版本")
+
+
 class BasicSection(PluginConfigBase):
     """基础设置"""
 
     __ui_label__ = "基础设置"
     __ui_icon__ = "settings"
-    __ui_order__ = 0
+    __ui_order__ = 1
 
     enabled: bool = Field(default=True, description="是否启用每日定时推送")
     push_time: str = Field(default="08:00", description="每日推送时间（HH:MM）")
@@ -31,7 +41,7 @@ class GroupSection(PluginConfigBase):
 
     __ui_label__ = "分组开关"
     __ui_icon__ = "view_agenda"
-    __ui_order__ = 1
+    __ui_order__ = 2
 
     group1_enabled: bool = Field(default=True, description="资讯速览（新闻+科技）")
     group2_enabled: bool = Field(default=True, description="行情财经（汇率+油价+金价+DRAM）")
@@ -51,7 +61,7 @@ class AiQuotaSection(PluginConfigBase):
 
     __ui_label__ = "AI 额度"
     __ui_icon__ = "account_balance_wallet"
-    __ui_order__ = 2
+    __ui_order__ = 3
 
     openrouter: AiProviderSection = Field(default_factory=AiProviderSection)
     deepseek: AiProviderSection = Field(default_factory=AiProviderSection)
@@ -64,7 +74,7 @@ class ExternalApiSection(PluginConfigBase):
 
     __ui_label__ = "外部 API Key"
     __ui_icon__ = "vpn_key"
-    __ui_order__ = 3
+    __ui_order__ = 4
 
     exchangerate_api_key: str = Field(default="", description="ExchangeRate-API Key（可留空，免费端点免 key）")
     rawg_api_key: str = Field(default="", description="RAWG API Key（游戏发售模块）")
@@ -75,7 +85,7 @@ class RenderSection(PluginConfigBase):
 
     __ui_label__ = "渲染设置"
     __ui_icon__ = "image"
-    __ui_order__ = 4
+    __ui_order__ = 5
 
     card_width: int = Field(default=750, description="图片宽度（px）")
     device_scale_factor: float = Field(default=2.0, description="高清倍率")
@@ -94,6 +104,7 @@ class DailyMorningReportConfig(PluginConfigBase):
 
     __ui_label__ = "每日早报"
 
+    plugin: PluginSection = Field(default_factory=PluginSection)
     basic: BasicSection = Field(default_factory=BasicSection)
     groups: GroupSection = Field(default_factory=GroupSection)
     ai_quota: AiQuotaSection = Field(default_factory=AiQuotaSection)
