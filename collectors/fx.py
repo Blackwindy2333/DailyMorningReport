@@ -40,9 +40,7 @@ class FxCollector(BaseCollector):
             result = []
             for code in self._currencies:
                 if code in rates:
-                    result.append(
-                        {"code": code, "rate": round(float(rates[code]), 4)}
-                    )
+                    result.append({"code": code, "rate": round(float(rates[code]), 4)})
             if not result:
                 raise CollectorError("汇率数据为空（检查币种列表配置）")
             return CollectorResult(

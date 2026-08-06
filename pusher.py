@@ -33,9 +33,7 @@ class Pusher:
         session_id = getattr(stream, "session_id", None)
         return str(session_id) if session_id else None
 
-    async def push_group_images(
-        self, images: list[str], group_id: str
-    ) -> tuple[int, int]:
+    async def push_group_images(self, images: list[str], group_id: str) -> tuple[int, int]:
         """向指定群按序推送多张图，返回 (成功数, 总数)。"""
         stream_id = await self._resolve_stream(group_id=group_id)
         if not stream_id:

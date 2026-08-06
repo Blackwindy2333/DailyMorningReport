@@ -62,9 +62,7 @@ class DailyMorningReportPlugin(MaiBotPlugin):
             self._cover_manager = None
         self.ctx.logger.info("每日早报插件已卸载")
 
-    async def on_config_update(
-        self, scope: str, config_data: dict[str, Any], version: str
-    ) -> None:
+    async def on_config_update(self, scope: str, config_data: dict[str, Any], version: str) -> None:
         del config_data, version
         if scope != "self":
             return
@@ -110,7 +108,7 @@ class DailyMorningReportPlugin(MaiBotPlugin):
         # 1. 并发采集（每个模块独立失败隔离）
         results: dict[str, CollectorResult] = {}
         tasks = [asyncio.create_task(c.collect()) for c in self._collectors]
-        for collector, task in zip(self._collectors, tasks):
+        for collector, task in zip(self._collectors, tasks, strict=True):
             try:
                 results[collector.module_id] = await task
             except Exception as exc:  # 兜底：异常也不中断整体

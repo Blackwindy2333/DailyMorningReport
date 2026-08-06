@@ -45,8 +45,7 @@ class GameCollector(BaseCollector):
             today = dt.date.today()
             end = today + dt.timedelta(days=self._days)
             url = (
-                f"{RAWG_API_URL}?key={api_key}&dates={today.isoformat()},{end.isoformat()}"
-                f"&ordering=-added&page_size=10"
+                f"{RAWG_API_URL}?key={api_key}&dates={today.isoformat()},{end.isoformat()}&ordering=-added&page_size=10"
             )
             payload = await self.fetch_json(url)
             results = payload.get("results") or []
@@ -55,8 +54,7 @@ class GameCollector(BaseCollector):
                 platforms = [
                     str(plat_obj.get("name") or "")
                     for plat in (item.get("platforms") or [])
-                    if isinstance(plat, dict)
-                    and isinstance(plat_obj := plat.get("platform"), dict)
+                    if isinstance(plat, dict) and isinstance(plat_obj := plat.get("platform"), dict)
                 ]
                 games.append(
                     {

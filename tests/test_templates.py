@@ -112,7 +112,11 @@ def test_ai_quota_error() -> None:
 def test_anime_cover_placeholder() -> None:
     result = _ok(
         "anime",
-        {"animes": [{"name": "示例新番", "air_date": "2026-08-06", "score": 7.6, "image_url": "https://lain.bgm.tv/x.jpg"}]},
+        {
+            "animes": [
+                {"name": "示例新番", "air_date": "2026-08-06", "score": 7.6, "image_url": "https://lain.bgm.tv/x.jpg"}
+            ]
+        },
     )
     html = anime_card(result, cover_base64={})
     assert "示例新番" in html
@@ -122,7 +126,11 @@ def test_anime_cover_placeholder() -> None:
 def test_anime_cover_embedded() -> None:
     result = _ok(
         "anime",
-        {"animes": [{"name": "示例新番", "air_date": "2026-08-06", "score": None, "image_url": "https://lain.bgm.tv/x.jpg"}]},
+        {
+            "animes": [
+                {"name": "示例新番", "air_date": "2026-08-06", "score": None, "image_url": "https://lain.bgm.tv/x.jpg"}
+            ]
+        },
     )
     html = anime_card(result, cover_base64={"https://lain.bgm.tv/x.jpg": "data:image/jpeg;base64,AAAA"})
     assert 'src="data:image/jpeg;base64,AAAA"' in html
@@ -153,7 +161,7 @@ def test_movie_card_ok() -> None:
 
 def test_html_escaping() -> None:
     """恶意/特殊字符应被转义。"""
-    result = _ok("news", {"news": ['<script>alert(1)</script>', '标题 "带引号"']})
+    result = _ok("news", {"news": ["<script>alert(1)</script>", '标题 "带引号"']})
     html = news_card(result)
     assert "<script>alert(1)</script>" not in html
     assert "&lt;script&gt;" in html
@@ -179,7 +187,9 @@ def test_render_group2_with_public_quota(config) -> None:
 
 def test_render_group3(config) -> None:
     anime = _ok("anime", {"animes": [{"name": "新番A", "air_date": "", "score": None, "image_url": ""}]})
-    movie = _ok("movie", {"movies": [{"name": "电影A", "date": "", "genre": "", "region": "", "wish": "", "image_url": ""}]})
+    movie = _ok(
+        "movie", {"movies": [{"name": "电影A", "date": "", "genre": "", "region": "", "wish": "", "image_url": ""}]}
+    )
     game = _ok("game", {"games": [{"name": "游戏A", "released": "", "platforms": ["PC"], "image_url": ""}]})
     html = render_group3(anime, movie, game, {}, config)
     assert "每日早报 · 文娱生活" in html

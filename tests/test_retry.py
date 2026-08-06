@@ -1,4 +1,4 @@
-﻿"""重试与错误处理测试：用 httpx.MockTransport 注入失败/成功响应。"""
+"""重试与错误处理测试：用 httpx.MockTransport 注入失败/成功响应。"""
 
 import logging
 

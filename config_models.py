@@ -36,9 +36,7 @@ class GroupSection(PluginConfigBase):
     group1_enabled: bool = Field(default=True, description="资讯速览（新闻+科技）")
     group2_enabled: bool = Field(default=True, description="行情财经（汇率+油价+金价+DRAM）")
     group3_enabled: bool = Field(default=True, description="文娱生活（新番+电影+游戏）")
-    ai_quota_public: bool = Field(
-        default=False, description="AI额度是否公开推送到群（默认仅私发管理员）"
-    )
+    ai_quota_public: bool = Field(default=False, description="AI额度是否公开推送到群（默认仅私发管理员）")
 
 
 class AiProviderSection(PluginConfigBase):
@@ -68,9 +66,7 @@ class ExternalApiSection(PluginConfigBase):
     __ui_icon__ = "vpn_key"
     __ui_order__ = 3
 
-    exchangerate_api_key: str = Field(
-        default="", description="ExchangeRate-API Key（可留空，免费端点免 key）"
-    )
+    exchangerate_api_key: str = Field(default="", description="ExchangeRate-API Key（可留空，免费端点免 key）")
     rawg_api_key: str = Field(default="", description="RAWG API Key（游戏发售模块）")
 
 

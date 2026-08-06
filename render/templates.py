@@ -150,8 +150,7 @@ def news_card(result: CollectorResult, limit: int = 10) -> str:
         return error_card(result.module_id, "新闻速读", result.error_msg)
     data = result.data
     items = "".join(
-        f'    <div class="news-item"><span class="idx">{i + 1}</span>'
-        f'<span class="txt">{_esc(text)}</span></div>'
+        f'    <div class="news-item"><span class="idx">{i + 1}</span><span class="txt">{_esc(text)}</span></div>'
         for i, text in enumerate(data.get("news", [])[:limit])
     )
     tip = data.get("tip") or ""
@@ -170,8 +169,7 @@ def tech_card(result: CollectorResult, limit: int = 15) -> str:
     if result.status == "error":
         return error_card(result.module_id, "科技热点", result.error_msg)
     items = "".join(
-        f'    <div class="news-item"><span class="idx">{i + 1}</span>'
-        f'<span class="txt">{_esc(text)}</span></div>'
+        f'    <div class="news-item"><span class="idx">{i + 1}</span><span class="txt">{_esc(text)}</span></div>'
         for i, text in enumerate(result.data.get("titles", [])[:limit])
     )
     return card_wrapper(result.module_id, "科技热点", result.fetched_at, items)
@@ -182,7 +180,7 @@ def dram_card(result: CollectorResult) -> str:
     if result.status == "error":
         return error_card(result.module_id, "DRAM 价格", result.error_msg)
     rows = "".join(
-        f'    <tr><td>{_esc(item["name"])}</td>'
+        f"    <tr><td>{_esc(item['name'])}</td>"
         f'<td class="num">{_num(item["avg"])}</td>'
         f'<td class="num">{_num(item["high"])}</td>'
         f'<td class="num">{_num(item["low"])}</td>'
@@ -201,8 +199,7 @@ def fx_card(result: CollectorResult) -> str:
     if result.status == "error":
         return error_card(result.module_id, "实时汇率", result.error_msg)
     rows = "".join(
-        f'    <tr><td>{_esc(item["code"])}</td>'
-        f'<td class="num">{_num(item["rate"], 4)}</td></tr>'
+        f'    <tr><td>{_esc(item["code"])}</td><td class="num">{_num(item["rate"], 4)}</td></tr>'
         for item in result.data.get("rates", [])
     )
     inner = f"""    <table>
@@ -217,8 +214,7 @@ def fuel_card(result: CollectorResult) -> str:
     if result.status == "error":
         return error_card(result.module_id, "油价", result.error_msg)
     rows = "".join(
-        f'    <tr><td>{_esc(item["name"])}</td>'
-        f'<td class="num">{_num(item["price"])} 元/升</td></tr>'
+        f'    <tr><td>{_esc(item["name"])}</td><td class="num">{_num(item["price"])} 元/升</td></tr>'
         for item in result.data.get("items", [])
     )
     trend = result.data.get("trend") or {}
@@ -237,8 +233,7 @@ def gold_card(result: CollectorResult) -> str:
     if result.status == "error":
         return error_card(result.module_id, "金价", result.error_msg)
     rows = "".join(
-        f'    <tr><td>{_esc(item["name"])}</td>'
-        f'<td class="num">{_num(item["price"])} {_esc(item["unit"])}</td></tr>'
+        f'    <tr><td>{_esc(item["name"])}</td><td class="num">{_num(item["price"])} {_esc(item["unit"])}</td></tr>'
         for item in result.data.get("metals", [])
     )
     inner = f"""    <table>
@@ -253,9 +248,9 @@ def ai_quota_card(result: CollectorResult, public: bool = False) -> str:
     if result.status == "error":
         return error_card(result.module_id, "AI 额度", result.error_msg)
     rows = "".join(
-        f'    <tr><td>{_esc(q["provider"])}</td>'
+        f"    <tr><td>{_esc(q['provider'])}</td>"
         f'<td class="num">{_num(q["balance"])} {_esc(q["currency"])}</td>'
-        f'<td>{_esc(q.get("note") or "")}</td></tr>'
+        f"<td>{_esc(q.get('note') or '')}</td></tr>"
         for q in result.data.get("quotas", [])
     )
     inner = f"""    <table>
@@ -290,11 +285,7 @@ def movie_card(result: CollectorResult, cover_base64: dict[str, str]) -> str:
     items = []
     for movie in result.data.get("movies", []):
         img = _cover_img(movie.get("image_url") or "", cover_base64, "movie")
-        tags = " / ".join(
-            str(movie.get(k) or "")
-            for k in ("date", "genre", "region", "wish")
-            if movie.get(k)
-        )
+        tags = " / ".join(str(movie.get(k) or "") for k in ("date", "genre", "region", "wish") if movie.get(k))
         items.append(
             f'    <div class="movie-item">{img}'
             f'<div class="meta"><div class="name">{_esc(movie["name"])}</div>'
@@ -310,11 +301,7 @@ def game_card(result: CollectorResult, cover_base64: dict[str, str]) -> str:
     items = []
     for game in result.data.get("games", []):
         img = _cover_img(game.get("image_url") or "", cover_base64, "game")
-        tags = " / ".join(
-            str(game.get(k) or "")
-            for k in ("released", "platforms")
-            if game.get(k)
-        )
+        tags = " / ".join(str(game.get(k) or "") for k in ("released", "platforms") if game.get(k))
         items.append(
             f'    <div class="game-item">{img}'
             f'<div class="meta"><div class="name">{_esc(game["name"])}</div>'

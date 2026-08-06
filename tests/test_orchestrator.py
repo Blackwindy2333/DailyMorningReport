@@ -127,7 +127,9 @@ async def test_orchestrator_ai_quota_private_and_public() -> None:
         "anime": _ok("anime", {"animes": []}),
         "movie": _ok("movie", {"movies": []}),
         "game": _ok("game", {"games": []}),
-        "ai_quota": _ok("ai_quota", {"quotas": [{"provider": "OpenRouter", "balance": 3.7, "currency": "USD", "note": ""}]}),
+        "ai_quota": _ok(
+            "ai_quota", {"quotas": [{"provider": "OpenRouter", "balance": 3.7, "currency": "USD", "note": ""}]}
+        ),
     }
     images = await plugin._render(results)
     assert len(images["groups"]) == 3
@@ -167,14 +169,17 @@ async def test_full_execute_pushes_to_groups() -> None:
 
     class FakeCollector:
         module_id = ""
+
         async def collect(self):  # noqa: D102
             return await fake_collect(self)
+
         async def close(self):  # noqa: D102
             pass
 
-    plugin._build_collectors = lambda: [type("C", (FakeCollector,), {"module_id": mid})() for mid in (
-        "news", "tech", "fx", "fuel", "gold", "dram", "anime", "movie", "game"
-    )]
+    plugin._build_collectors = lambda: [
+        type("C", (FakeCollector,), {"module_id": mid})()
+        for mid in ("news", "tech", "fx", "fuel", "gold", "dram", "anime", "movie", "game")
+    ]
     plugin._running_lock = asyncio.Lock()
 
     await plugin._execute()

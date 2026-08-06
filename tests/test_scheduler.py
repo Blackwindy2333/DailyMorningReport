@@ -1,6 +1,5 @@
 """调度器测试：下一个触发时刻计算（含跨天）。"""
 
-import asyncio
 import datetime as dt
 import logging
 from zoneinfo import ZoneInfo

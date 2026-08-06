@@ -107,7 +107,10 @@ BGM_CALENDAR = [
                 "name_cn": "示例新番",
                 "air_date": "2026-08-06",
                 "air_weekday": 4,
-                "images": {"large": "https://lain.bgm.tv/pic/cover/l/x.jpg", "grid": "https://lain.bgm.tv/pic/cover/g/x.jpg"},
+                "images": {
+                    "large": "https://lain.bgm.tv/pic/cover/l/x.jpg",
+                    "grid": "https://lain.bgm.tv/pic/cover/g/x.jpg",
+                },
                 "rating": {"total": 100, "score": 7.6},
             }
         ],
@@ -147,7 +150,12 @@ RAWG_GAMES = {
 }
 
 OPENROUTER_RESP = {"data": {"label": "sk-...AbCd", "usage": 1.234, "limit": 5.0, "is_free_tier": False}}
-DEEPSEEK_RESP = {"is_available": True, "balance_infos": [{"currency": "CNY", "total_balance": "110.00", "granted_balance": "10.00", "topped_up_balance": "100.00"}]}
+DEEPSEEK_RESP = {
+    "is_available": True,
+    "balance_infos": [
+        {"currency": "CNY", "total_balance": "110.00", "granted_balance": "10.00", "topped_up_balance": "100.00"}
+    ],
+}
 KIMI_RESP = {"data": {"available_balance": 88.5, "voucher_balance": 0, "cash_balance": 88.5}}
 SILICONFLOW_RESP = {"code": 20000, "data": {"balance": 10.0, "chargeBalance": 8.0, "totalBalance": 18.0}}
 

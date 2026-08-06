@@ -17,12 +17,9 @@
 
 from __future__ import annotations
 
-import logging
 from typing import Any, Callable, Coroutine
 
-import httpx
-
-from .base import BaseCollector, CollectorError, CollectorResult, mask_key
+from .base import BaseCollector, CollectorError, CollectorResult
 
 # 归一化输出结构
 # {"provider": str, "balance": float, "currency": str, "note": str}

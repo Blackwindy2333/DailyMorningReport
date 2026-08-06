@@ -11,8 +11,7 @@ from typing import Any, Literal
 import httpx
 
 DEFAULT_USER_AGENT = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
 )
 
 
@@ -85,9 +84,7 @@ class BaseCollector:
             return True
         return False
 
-    async def _request_with_retry(
-        self, url: str, **kwargs: Any
-    ) -> httpx.Response:
+    async def _request_with_retry(self, url: str, **kwargs: Any) -> httpx.Response:
         """GET 请求，带可配置重试（指数退避），失败抛 CollectorError。"""
         client = await self.get_client()
         last_exc: Exception | None = None
