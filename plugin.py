@@ -8,18 +8,33 @@
 
 日志：保留 SDK 插件 logger（ctx.logger）+ 独立滚动文件日志（data_dir/logs），双通道并行。
 模块开关：config.modules 中关闭的模块不采集、不渲染；组内全部关闭则整图跳过。
+管理员命令：目标群内管理员可通过 /dmr 前缀命令查看/修改配置（仅运行时生效）、立即推送早报。
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from maibot_sdk import CONFIG_RELOAD_SCOPE_SELF, Command, MaiBotPlugin
+from maibot_sdk import CONFIG_RELOAD_SCOPE_SELF, Command, EventHandler, MaiBotPlugin
+from maibot_sdk.types import EventType
 
 import asyncio
 import datetime as dt
 import time
 
+from .admin_commands import (
+    AdminCommandError,
+    affects_scheduler,
+    build_help_text,
+    build_status_text,
+    convert_value,
+    format_value,
+    get_nested,
+    is_sensitive_key,
+    parse_command,
+    set_nested,
+    strip_prefix,
+)
 from .archive import ArchiveManager
 from .collectors import COLLECTORS
 from .collectors.base import CollectorResult
@@ -100,6 +115,11 @@ class DailyMorningReportPlugin(MaiBotPlugin):
         if scope != CONFIG_RELOAD_SCOPE_SELF:
             return
         # self.config 已由 SDK 自动更新，重启调度循环使时间/开关即时生效
+        await self._restart_scheduler()
+        self.ctx.logger.info("每日早报配置已更新并重启调度")
+
+    async def _restart_scheduler(self) -> None:
+        """按当前配置重建调度器（时间/开关变更后调用）。"""
         if self._scheduler is not None:
             await self._scheduler.stop()
         self._scheduler = DailyScheduler(
@@ -110,7 +130,6 @@ class DailyMorningReportPlugin(MaiBotPlugin):
         )
         if self.config.basic.enabled:
             self._scheduler.start()
-        self.ctx.logger.info("每日早报配置已更新并重启调度")
 
     # ── 编排 ──
 
@@ -369,6 +388,118 @@ class DailyMorningReportPlugin(MaiBotPlugin):
     def _missing(module_id: str) -> CollectorResult:
         """构造缺失模块的失败结果。"""
         return CollectorResult(module_id=module_id, status="error", error_msg="模块未执行")
+
+    # ── 管理员 /dmr 命令 ──
+
+    @EventHandler(
+        "dmr_admin_commands",
+        description="管理员 /dmr 配置命令（目标群内查看/修改配置、立即推送）",
+        event_type=EventType.ON_MESSAGE_PRE_PROCESS,
+        weight=100,
+    )
+    async def on_admin_command_message(self, message: dict, **kwargs: Any) -> None:
+        """监听目标群内管理员发送的 /dmr 命令（非阻塞旁路，不拦截消息链）。"""
+        del kwargs
+        try:
+            await self._dispatch_admin_command(message)
+        except Exception:
+            self.ctx.logger.exception("管理员 /dmr 命令处理异常")
+
+    async def _dispatch_admin_command(self, message: dict) -> None:
+        """过滤链 + 鉴权 + 分派子命令。"""
+        cfg = self.config.basic
+        if not cfg.admin_command_enabled:
+            return
+        if str(message.get("platform") or "") != "qq":
+            return
+        command = strip_prefix(self._message_plain_text(message), cfg.admin_command_prefix)
+        if command is None:
+            return
+
+        stream_id = str(message.get("session_id") or "")
+        message_info = message.get("message_info") or {}
+        user_id = str((message_info.get("user_info") or {}).get("user_id") or "")
+        group_id = str((message_info.get("group_info") or {}).get("group_id") or "")
+
+        # 鉴权：仅管理员且在目标群内
+        if user_id not in cfg.admin_qqs or group_id not in cfg.target_groups:
+            await self._reply_admin(stream_id, "无权限执行早报管理命令")
+            return
+
+        subcommand, args = parse_command(command)
+        try:
+            response = await self._exec_admin_subcommand(subcommand, args)
+        except AdminCommandError as exc:
+            response = str(exc)
+        except Exception:
+            self.ctx.logger.exception("管理员命令 %s 执行异常", subcommand)
+            response = "命令执行失败，请查看日志"
+        await self._reply_admin(stream_id, response)
+
+    async def _exec_admin_subcommand(self, subcommand: str, args: list[str]) -> str:
+        """执行单个子命令，返回回复文本。"""
+        prefix = self.config.basic.admin_command_prefix
+        if not subcommand or subcommand == "help":
+            return build_help_text(prefix)
+        if subcommand == "status":
+            return build_status_text(self.get_plugin_config_data())
+        if subcommand == "set":
+            if len(args) < 2:
+                raise AdminCommandError(f"用法：{prefix} set <键> <值>")
+            key, raw_value = args[0], " ".join(args[1:])
+            return await self._apply_config_change(key, convert_value(raw_value))
+        if subcommand == "reset":
+            if len(args) < 1:
+                raise AdminCommandError(f"用法：{prefix} reset <键>")
+            default_value = get_nested(type(self).build_default_config(), args[0])
+            if default_value is None:
+                raise AdminCommandError(f"未知配置键：{args[0]}")
+            return await self._apply_config_change(args[0], default_value)
+        if subcommand == "push":
+            if self._running_lock.locked():
+                return "日报生成中，请稍候"
+            async with self._running_lock:
+                await self._execute()
+            return "日报已生成并推送"
+        raise AdminCommandError(f"未知子命令：{subcommand}，发送 {prefix} help 查看用法")
+
+    async def _apply_config_change(self, key: str, value: Any) -> str:
+        """校验并应用配置修改（仅运行时生效），返回回复文本。"""
+        if is_sensitive_key(key):
+            raise AdminCommandError("该配置项含敏感信息（api_key/token/secret），请到 WebUI 修改")
+        current = self.get_plugin_config_data()
+        try:
+            updated = set_nested(current, key, value)
+            DailyMorningReportConfig.model_validate(updated)
+        except AdminCommandError:
+            raise
+        except Exception as exc:
+            raise AdminCommandError(f"配置值无效：{exc}") from exc
+        self.set_plugin_config(updated)
+        if affects_scheduler(key):
+            await self._restart_scheduler()
+        return f"已设置 {key} = {format_value(value)}（仅运行时生效，重启后恢复 WebUI 配置值）"
+
+    @staticmethod
+    def _message_plain_text(message: dict) -> str:
+        """从消息 dict 提取纯文本：优先 processed_plain_text，否则拼接 text 段。"""
+        processed = message.get("processed_plain_text")
+        if processed:
+            return str(processed)
+        parts: list[str] = []
+        for segment in message.get("raw_message") or []:
+            if isinstance(segment, dict) and segment.get("type") == "text":
+                parts.append(str((segment.get("data") or {}).get("text") or ""))
+        return "".join(parts)
+
+    async def _reply_admin(self, stream_id: str, text: str) -> None:
+        """向命令来源群回复文本。"""
+        if not stream_id:
+            return
+        try:
+            await self.ctx.send.text(text, stream_id)
+        except Exception:
+            self.ctx.logger.exception("管理员命令回复发送异常")
 
     # ── 命令 ──
 
