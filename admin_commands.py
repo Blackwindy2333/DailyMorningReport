@@ -12,6 +12,9 @@ from typing import Any
 # 敏感字段路径片段（不区分大小写）：set/status 对含这些片段的键做拦截/脱敏
 SENSITIVE_KEY_PARTS = ("api_key", "token", "secret")
 
+# AI 额度厂商 key 所在顶层配置节（平铺 key 配置后 key 直接位于该节下）
+SENSITIVE_SECTION = "ai_quota"
+
 # 影响调度器的配置键：变更后需重启调度循环
 SCHEDULER_KEYS = ("basic.enabled", "basic.push_time", "basic.timezone")
 
@@ -62,8 +65,10 @@ def convert_value(raw: str) -> Any:
 
 
 def is_sensitive_key(key: str) -> bool:
-    """键路径是否含敏感片段（api_key / token / secret）。"""
+    """键路径是否为敏感配置（AI 额度 key 或含 api_key/token/secret 的字段）。"""
     lowered = key.lower()
+    if lowered == SENSITIVE_SECTION or lowered.startswith(f"{SENSITIVE_SECTION}."):
+        return True
     return any(part in lowered for part in SENSITIVE_KEY_PARTS)
 
 
@@ -144,5 +149,5 @@ def build_help_text(prefix: str) -> str:
         f"{prefix} reset <键> —— 恢复该配置项默认值\n"
         f"{prefix} push —— 立即推送一次早报\n"
         "注意：命令修改仅运行时生效，重启后恢复 WebUI 配置值；"
-        "含 api_key/token/secret 的字段请到 WebUI 修改。"
+        "AI 额度 key 与含 api_key/token/secret 的字段请到 WebUI 修改。"
     )
