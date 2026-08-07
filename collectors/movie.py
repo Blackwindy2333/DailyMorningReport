@@ -84,7 +84,7 @@ class MovieCollector(BaseCollector):
         if not api_key:
             return self.error_result("TMDB 降级源未配置 API Key")
         try:
-            today = dt.date.today()
+            today = self._today()
             end = today + dt.timedelta(days=14)
             url = (
                 f"{TMDB_DISCOVER_URL}?language=zh-CN"

@@ -6,8 +6,10 @@ from dataclasses import dataclass, field
 from typing import Any, Literal
 
 import asyncio
+import datetime as dt
 import hashlib
 import logging
+from zoneinfo import ZoneInfo
 
 import httpx
 
@@ -53,6 +55,14 @@ class BaseCollector:
     @property
     def _retry_interval(self) -> float:
         return float(self.config.basic.retry_interval)
+
+    def _today(self) -> dt.date:
+        """返回配置时区的今天（与调度/新番/存档等模块口径一致）。"""
+        try:
+            tz = ZoneInfo(self.config.basic.timezone)
+        except (KeyError, ValueError, OSError, TypeError):
+            tz = ZoneInfo("Asia/Shanghai")
+        return dt.datetime.now(tz).date()
 
     async def get_client(self) -> httpx.AsyncClient:
         """懒创建共享异步客户端（浏览器 UA）。"""

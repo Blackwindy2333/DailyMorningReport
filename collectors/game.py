@@ -42,7 +42,7 @@ class GameCollector(BaseCollector):
         if not api_key:
             return self.error_result("未配置 RAWG API Key，跳过游戏发售模块")
         try:
-            today = dt.date.today()
+            today = self._today()
             end = today + dt.timedelta(days=self._days)
             # key 经 params 传递（写完 URL 后由 _safe_url 脱敏，避免 query 泄露）
             params = {

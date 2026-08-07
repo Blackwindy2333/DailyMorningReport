@@ -45,7 +45,7 @@ class HolidayCollector(BaseCollector):
 
     async def collect(self) -> CollectorResult:
         try:
-            today = dt.date.today()
+            today = self._today()
             holidays = self._fixed_holidays(today)
             history = await self._history_events()
             return CollectorResult(
