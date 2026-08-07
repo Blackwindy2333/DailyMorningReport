@@ -46,11 +46,11 @@ class AiUsageCollector(BaseCollector):
         if not timestamps:
             return self.error_result("近两日无模型调用记录")
 
-        # 找到"昨日"（00:00:00 格式日期）的索引；用配置时区保证与调度/新番等模块口径一致
+        # 找到"昨日"（00:00:00 格式日期）的索引；用配置时区，非法时区回退 Asia/Shanghai（与调度/新番一致）
         try:
             tz = ZoneInfo(self.config.basic.timezone)
-        except (KeyError, ValueError, OSError):
-            tz = dt.timezone.utc
+        except (KeyError, ValueError, OSError, TypeError):
+            tz = ZoneInfo("Asia/Shanghai")
         yesterday = (dt.datetime.now(tz) - dt.timedelta(days=1)).date().isoformat()
         yesterday_index = None
         for index, ts in enumerate(timestamps):
