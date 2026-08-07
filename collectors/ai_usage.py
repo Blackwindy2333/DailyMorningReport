@@ -19,6 +19,7 @@ from __future__ import annotations
 import datetime as dt
 import logging
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from .base import BaseCollector, CollectorResult
 
@@ -45,8 +46,12 @@ class AiUsageCollector(BaseCollector):
         if not timestamps:
             return self.error_result("近两日无模型调用记录")
 
-        # 找到"昨日"（00:00:00 格式日期）的索引
-        yesterday = (dt.date.today() - dt.timedelta(days=1)).isoformat()
+        # 找到"昨日"（00:00:00 格式日期）的索引；用配置时区保证与调度/新番等模块口径一致
+        try:
+            tz = ZoneInfo(self.config.basic.timezone)
+        except (KeyError, ValueError, OSError):
+            tz = dt.timezone.utc
+        yesterday = (dt.datetime.now(tz) - dt.timedelta(days=1)).date().isoformat()
         yesterday_index = None
         for index, ts in enumerate(timestamps):
             if str(ts).startswith(yesterday):
