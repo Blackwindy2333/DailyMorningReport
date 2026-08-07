@@ -42,29 +42,34 @@ class FuelCollector(BaseCollector):
                 except CollectorError as exc:
                     self.logger.warning("油价地区 %s 查询失败: %s", region, exc)
                     continue
-                data = payload.get("data") or {}
-                items = data.get("items") or []
-                parsed_items = []
-                for item in items:
-                    parsed_items.append(
-                        {
-                            "name": str(item.get("name") or ""),
-                            "price": float(item.get("price") or 0),
+                try:
+                    data = payload.get("data") or {}
+                    items = data.get("items") or []
+                    parsed_items = []
+                    for item in items:
+                        try:
+                            price = float(item.get("price") or 0)
+                        except (ValueError, TypeError):
+                            price = 0  # 单条坏价格兜底，不中断整地区
+                        parsed_items.append(
+                            {"name": str(item.get("name") or ""), "price": price}
+                        )
+                    if parsed_items:
+                        all_regions.append(
+                            {
+                                "region": str(data.get("region") or region),
+                                "items": parsed_items,
+                            }
+                        )
+                    trend = data.get("trend") or {}
+                    if trend.get("description"):
+                        last_trend = {
+                            "description": str(trend.get("description") or ""),
+                            "direction": str(trend.get("direction") or ""),
                         }
-                    )
-                if parsed_items:
-                    all_regions.append(
-                        {
-                            "region": str(data.get("region") or region),
-                            "items": parsed_items,
-                        }
-                    )
-                trend = data.get("trend") or {}
-                if trend.get("description"):
-                    last_trend = {
-                        "description": str(trend.get("description") or ""),
-                        "direction": str(trend.get("direction") or ""),
-                    }
+                except Exception as exc:  # 单地区解析失败隔离，不影响其他地区
+                    self.logger.warning("油价地区 %s 解析失败: %s", region, exc)
+                    continue
             if not all_regions:
                 raise CollectorError("油价数据为空（所有地区查询失败）")
             return CollectorResult(

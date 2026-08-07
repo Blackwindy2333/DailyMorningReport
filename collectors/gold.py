@@ -39,10 +39,14 @@ class GoldCollector(BaseCollector):
             for metal in metals:
                 name = str(metal.get("name") or "")
                 if any(keyword in name for keyword in GOLD_KEYWORDS):
+                    try:
+                        price = float(metal.get("sell_price") or 0)
+                    except (ValueError, TypeError):
+                        continue  # 单条坏价格跳过，不中断整模块
                     parsed.append(
                         {
                             "name": name,
-                            "price": float(metal.get("sell_price") or 0),
+                            "price": price,
                             "unit": str(metal.get("unit") or ""),
                         }
                     )
