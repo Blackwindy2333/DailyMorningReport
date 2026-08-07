@@ -68,6 +68,7 @@ class CoverManager:
         self._timeout = timeout
         self._client: httpx.AsyncClient | None = None
         self._semaphore = asyncio.Semaphore(_MAX_CONCURRENT)
+        self._inflight: dict[str, asyncio.Task] = {}  # 同 URL 去重，防并发重复下载
 
     async def close(self) -> None:
         """关闭内部客户端。"""
@@ -110,8 +111,21 @@ class CoverManager:
         cached = self.load_base64(url)
         if cached is not None:
             return cached
-        async with self._semaphore:  # 限制并发下载
-            return await self._download(url)
+        # 同 URL 并发去重：已有在下载则复用，避免重复请求
+        existing = self._inflight.get(url)
+        if existing and not existing.done():
+            return await existing
+
+        async def _worker() -> str | None:
+            async with self._semaphore:  # 限制并发下载
+                return await self._download(url)
+
+        task = asyncio.create_task(_worker())
+        self._inflight[url] = task
+        try:
+            return await task
+        finally:
+            self._inflight.pop(url, None)
 
     async def _download(self, url: str) -> str | None:
         data, suffix = await self._safe_download(url)
