@@ -24,11 +24,15 @@ from ..collectors.base import content_hash
 _CACHE_PREFIX = "covers"
 _IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp")
 _MAX_CONCURRENT = 4
+_MAX_IMAGE_BYTES = 5 * 1024 * 1024  # 单张封面最大 5MB，防内存耗尽
+_MAX_REDIRECTS = 5
 
 
 async def _is_safe_url(url: str) -> bool:
     """SSRF 防护：仅允许 http/https，且解析后的 IP 非私网/环回/链路本地/多播。"""
     try:
+        if url.startswith("//"):  # protocol-relative（如豆瓣封面 //img...）
+            url = "https:" + url
         parsed = urlparse(url)
         if parsed.scheme not in ("http", "https") or not parsed.hostname:
             return False
@@ -37,7 +41,7 @@ async def _is_safe_url(url: str) -> bool:
             addr_info = await loop.getaddrinfo(parsed.hostname, None)
         except Exception:
             return False
-        for addr in addr_info[:8]:
+        for addr in addr_info:  # 全量校验，不限于前 8 条，防混合 A 记录绕过
             try:
                 ip = ipaddress.ip_address(addr[4][0])
                 if (
@@ -75,7 +79,7 @@ class CoverManager:
         if self._client is None:
             self._client = httpx.AsyncClient(
                 timeout=httpx.Timeout(self._timeout),
-                follow_redirects=True,
+                follow_redirects=False,  # 手动跟随并在每次跳转时校验 SSRF
             )
         return self._client
 
@@ -110,26 +114,59 @@ class CoverManager:
             return await self._download(url)
 
     async def _download(self, url: str) -> str | None:
-        if not await _is_safe_url(url):
-            self._logger.warning("封面 URL 未通过 SSRF 校验，跳过: %s", url)
+        data, suffix = await self._safe_download(url)
+        if data is None:
             return None
         try:
-            client = await self._get_client()
-            response = await client.get(url, headers={"Referer": _referer_of(url)})
-            if response.status_code != 200:
-                self._logger.warning("封面下载失败 HTTP %s: %s", response.status_code, url)
-                return None
-            content_type = response.headers.get("content-type", "")
-            if not _is_image(content_type, url):
-                self._logger.warning("封面非图片类型: %s (%s)", url, content_type)
-                return None
             self._cache_dir.mkdir(parents=True, exist_ok=True)
-            path = self._cache_path(url, _suffix_for(content_type))
-            path.write_bytes(response.content)
-            return self.load_base64(url)
-        except httpx.HTTPError as exc:
-            self._logger.warning("封面下载异常: %s (%s)", url, exc)
+            path = self._cache_path(url, suffix)
+            path.write_bytes(data)
+        except OSError as exc:
+            self._logger.warning("封面缓存写入失败: %s (%s)", url, exc)
             return None
+        return self.load_base64(url)
+
+    async def _safe_download(self, url: str) -> tuple[bytes | None, str]:
+        """安全下载：手动跟随重定向（每次跳转校验 SSRF）+ 流式读取限制大小。
+
+        返回 (图片字节, 扩展名)；失败返回 (None, "")。
+        """
+        client = await self._get_client()
+        current = url
+        for _ in range(_MAX_REDIRECTS + 1):
+            if not await _is_safe_url(current):
+                self._logger.warning("封面 URL 未通过 SSRF 校验，跳过: %s", current)
+                return None, ""
+            try:
+                async with client.stream(
+                    "GET", current, follow_redirects=False,
+                    headers={"Referer": _referer_of(current)},
+                ) as response:
+                    if response.is_redirect:
+                        location = response.headers.get("location")
+                        if not location:
+                            return None, ""
+                        current = str(httpx.URL(current).join(location))
+                        continue
+                    if response.status_code != 200:
+                        self._logger.warning("封面下载失败 HTTP %s: %s", response.status_code, current)
+                        return None, ""
+                    content_type = response.headers.get("content-type", "")
+                    if not _is_image(content_type, current):
+                        self._logger.warning("封面非图片类型: %s (%s)", current, content_type)
+                        return None, ""
+                    data = b""
+                    async for chunk in response.aiter_bytes():
+                        data += chunk
+                        if len(data) > _MAX_IMAGE_BYTES:
+                            self._logger.warning("封面前 %d 字节超限（>%d），跳过: %s", len(data), _MAX_IMAGE_BYTES, current)
+                            return None, ""
+                    return data, _suffix_for(content_type)
+            except httpx.HTTPError as exc:
+                self._logger.warning("封面下载异常: %s (%s)", current, exc)
+                return None, ""
+        self._logger.warning("封面下载重定向次数超限: %s", url)
+        return None, ""
 
 
 def _guess_mime(path: Path) -> str:
