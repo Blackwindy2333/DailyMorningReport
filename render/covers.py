@@ -189,9 +189,15 @@ def _suffix_for(content_type: str) -> str:
     }.get(content_type.split(";")[0].strip().lower(), ".jpg")
 
 
+_IMAGE_CONTENT_TYPES = frozenset(
+    {"image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"}
+)
+
+
 def _is_image(content_type: str, url: str) -> bool:
-    if content_type and content_type.startswith("image/"):
-        return True
+    # 白名单仅允许具体位图类型，排除 svg 等可能异常的格式
+    if content_type:
+        return content_type.split(";")[0].strip().lower() in _IMAGE_CONTENT_TYPES
     return any(url.lower().endswith(ext) for ext in _IMAGE_EXTENSIONS)
 
 
