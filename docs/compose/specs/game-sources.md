@@ -1,10 +1,18 @@
 ---
 feature: game-sources
-status: designed
+status: delivered
 updated: 2026-08-07
 ---
 
 # 游戏发售多数据源支持
+
+## Report
+
+**What was built** — 游戏发售模块从单一 RAWG 源重构为多数据源（RAWG + EPIC），新增 `render.game_source` 配置支持用户选择。默认 `auto` 模式优先用免 key 的 EPIC 源（国内直连），失败自动降级 RAWG；指定源（`rawg`/`epic`）失败不降级，尊重用户选择。
+
+**Verification** — `py_compile` PASS；EPIC 源实测返回 40 个游戏（名/发售日期/图片）PASS；`collect()` auto 模式 EPIC 成功未降级 PASS；指定 rawg 无 key 正确报错 PASS。Reviewer 审查通过（1 处 major 测试网络依赖，已修复）。
+
+**Journey log** — 小黑盒 API 需逆向签名不可行（验证否决）；EPIC `storefrontLayout` 的 `branded-list-new-releases` 模块可用；测试需固定 `game_source` 避免 auto 走真实网络。
 
 ## [S1] Problem
 
@@ -81,8 +89,8 @@ class GameCollector(BaseCollector):
 
 ## Tasks
 
-- [ ] T1: 抽取 `RawgSource`（现有 game.py 逻辑抽出为独立源类） — acceptance: game.py 结构重构，RAWG 行为不变 (covers: S2)
-- [ ] T2: 实现 `EpicSource`（解析 storefront new-releases） — acceptance: 免 key 返回游戏名/发售日期/图片 (covers: S2)
-- [ ] T3: 配置 `render.game_source`（auto/rawg/epic）+ 源分派与 auto 降级 — acceptance: 按配置选择源，auto 失败降级 (covers: S2)
-- [ ] T4: README 更新（数据源选择说明 + API 申请指南调整） — acceptance: 文档说明 game_source 与各源要求 (covers: S2)
-- [ ] T5: 验证 — py_compile + EPIC 源实测返回数据 + auto 降级逻辑 (covers: S2)
+- [x] T1: 抽取 `RawgSource`（现有 game.py 逻辑抽出为独立源类） — acceptance: game.py 结构重构，RAWG 行为不变 (covers: S2)
+- [x] T2: 实现 `EpicSource`（解析 storefront new-releases） — acceptance: 免 key 返回游戏名/发售日期/图片 (covers: S2)
+- [x] T3: 配置 `render.game_source`（auto/rawg/epic）+ 源分派与 auto 降级 — acceptance: 按配置选择源，auto 失败降级 (covers: S2)
+- [x] T4: README 更新（数据源选择说明 + API 申请指南调整） — acceptance: 文档说明 game_source 与各源要求 (covers: S2)
+- [x] T5: 验证 — py_compile + EPIC 源实测返回数据 + auto 降级逻辑 (covers: S2)
