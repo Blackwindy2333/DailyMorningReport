@@ -97,9 +97,11 @@ class BaseCollector:
             try:
                 response = await client.get(url, **kwargs)
                 if response.status_code >= 400:
-                    if response.status_code >= 500 and attempt < self._retry_count - 1:
-                        await asyncio.sleep(self._retry_interval * (2**attempt))
-                        continue
+                    # 5xx 服务端错误与 429 限流（免费 API 常见瞬时错误）均重试
+                    if response.status_code >= 500 or response.status_code == 429:
+                        if attempt < self._retry_count - 1:
+                            await asyncio.sleep(self._retry_interval * (2**attempt))
+                            continue
                     raise CollectorError(f"HTTP {response.status_code}: {safe_url}")
                 return response
             # 捕所有 httpx 网络/协议异常（ConnectError/Timeout/TooManyRedirects/ProtocolError 等），
