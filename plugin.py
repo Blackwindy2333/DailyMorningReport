@@ -400,7 +400,9 @@ class DailyMorningReportPlugin(MaiBotPlugin):
             result = results.get(module_id)
             if result is None or result.status != "ok":
                 continue
-            for item in result.data.get("animes", result.data.get("movies", result.data.get("games", []))):
+            data = result.data or {}
+            items = data.get("animes") or data.get("movies") or data.get("games") or []
+            for item in items:
                 url = str(item.get("image_url") or "")
                 if url:
                     urls.append(url)
