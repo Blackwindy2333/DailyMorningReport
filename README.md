@@ -269,12 +269,13 @@ DailyMorningReport/
 - 配置项与 README 标注全部 API 申请地址（新增「🔑 API 申请指南」章节）
 
 **Bug 修复**
-- 修复封面下载 SSRF 风险：`covers.py` 下载外部 URL 前校验 scheme 白名单 + 内网 IP 拦截
+- 修复封面下载 SSRF 风险：`covers.py` 下载外部 URL 前校验 scheme 白名单 + 内网 IP 拦截；并修复**重定向绕过**——手动跟随重定向且逐跳校验（防公网 302 跳转内网/云元数据），封面下载加 5MB 大小上限防内存耗尽，支持 protocol-relative（`//img`）URL
 - 修复周日获取不到新番数据：Bangumi `/calendar` 的 `weekday.id`（0=周日）与 ISO `isoweekday` 映射修正
 - 修复 `on_unload` 清理中断：改用 `gather(return_exceptions=True)` 并行关闭任务与连接
 - 修复采集异常逃逸：重试捕获所有 `httpx.HTTPError`，避免击穿失败隔离
 - 修复 RAWG key 经 URL query 泄露：改为 `params` 传递 + 日志脱敏
 - 修复 `capabilities` 缺 `render.html2png`/`chat.*` 导致渲染与推送被拒
+- 修复昨日 AI 消费日期口径：改用配置时区计算"昨天"，与调度/新番等模块一致
 
 **其他**
 - 日志系统对接官方 SDK（`ctx.logger`），增强渲染/推送链路日志便于排查
