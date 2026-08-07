@@ -76,19 +76,20 @@ class DailyScheduler:
         """调度主循环：睡到下一个触发时刻 → 执行任务 → 循环。"""
         tz = self._resolve_tz()
         while True:
-            now = dt.datetime.now(tz)
-            next_at = self.next_run(now, self._parse_push_time(), tz)
-            sleep_seconds = max(0.0, (next_at - now).total_seconds())
-            self._logger.info(
-                "下次早报推送: %s（%d 秒后）",
-                next_at.strftime("%Y-%m-%d %H:%M:%S %Z"),
-                int(sleep_seconds),
-            )
             try:
+                now = dt.datetime.now(tz)
+                next_at = self.next_run(now, self._parse_push_time(), tz)
+                sleep_seconds = max(0.0, (next_at - now).total_seconds())
+                self._logger.info(
+                    "下次早报推送: %s（%d 秒后）",
+                    next_at.strftime("%Y-%m-%d %H:%M:%S %Z"),
+                    int(sleep_seconds),
+                )
                 await asyncio.sleep(sleep_seconds)
+                await self._job()
             except asyncio.CancelledError:
                 return
-            try:
-                await self._job()
             except Exception:
-                self._logger.exception("定时推送执行异常，调度循环继续")
+                # 整个循环体纳入 try：任何异常（含 DST 边界等）不静默终止任务
+                self._logger.exception("调度循环异常，60 秒后重试")
+                await asyncio.sleep(60)
