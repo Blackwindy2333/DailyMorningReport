@@ -15,7 +15,7 @@ class PluginSection(PluginConfigBase):
     __ui_icon__ = "info"
     __ui_order__ = 0
 
-    config_version: str = Field(default="1.4.0", description="配置版本")
+    config_version: str = Field(default="1.4.1", description="配置版本")
 
 
 class BasicSection(PluginConfigBase):
