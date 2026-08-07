@@ -3,7 +3,7 @@
 所有敏感字段（API Key 等）默认空字符串，由用户在 WebUI / config.toml 中填写。
 """
 
-from typing import List
+from typing import List, Literal
 
 from maibot_sdk import Field, PluginConfigBase
 
@@ -102,6 +102,10 @@ class RenderSection(PluginConfigBase):
     news_count: int = Field(default=10, description="新闻条数")
     tech_count: int = Field(default=15, description="科技热榜条数")
     game_days: int = Field(default=7, description="游戏发售前瞻天数")
+    game_source: Literal["auto", "rawg", "epic"] = Field(
+        default="auto",
+        description="游戏发售数据源：auto（自动降级，优先 epic 免 key）/ rawg（需 key，全平台）/ epic（免 key，国内直连）",
+    )
     fx_currencies: List[str] = Field(
         default_factory=lambda: ["USD", "EUR", "JPY", "HKD", "GBP"],
         description="汇率展示币种列表（ISO 代码）",
