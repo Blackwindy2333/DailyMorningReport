@@ -1,5 +1,6 @@
 # 运行时配置（Runner 生成，含用户密钥，禁止提交）
 /config.toml
+config_back/
 
 # Python
 __pycache__/

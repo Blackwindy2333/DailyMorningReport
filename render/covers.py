@@ -12,8 +12,10 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import ipaddress
 import logging
 from pathlib import Path
+from urllib.parse import urlparse
 
 import httpx
 
@@ -22,6 +24,35 @@ from ..collectors.base import content_hash
 _CACHE_PREFIX = "covers"
 _IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp")
 _MAX_CONCURRENT = 4
+
+
+async def _is_safe_url(url: str) -> bool:
+    """SSRF 防护：仅允许 http/https，且解析后的 IP 非私网/环回/链路本地/多播。"""
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https") or not parsed.hostname:
+            return False
+        loop = asyncio.get_event_loop()
+        try:
+            addr_info = await loop.getaddrinfo(parsed.hostname, None)
+        except Exception:
+            return False
+        for addr in addr_info[:8]:
+            try:
+                ip = ipaddress.ip_address(addr[4][0])
+                if (
+                    ip.is_private
+                    or ip.is_loopback
+                    or ip.is_unspecified
+                    or ip.is_link_local
+                    or ip.is_multicast
+                ):
+                    return False
+            except ValueError:
+                return False
+        return True
+    except Exception:
+        return False
 
 
 class CoverManager:
@@ -79,6 +110,9 @@ class CoverManager:
             return await self._download(url)
 
     async def _download(self, url: str) -> str | None:
+        if not await _is_safe_url(url):
+            self._logger.warning("封面 URL 未通过 SSRF 校验，跳过: %s", url)
+            return None
         try:
             client = await self._get_client()
             response = await client.get(url, headers={"Referer": _referer_of(url)})

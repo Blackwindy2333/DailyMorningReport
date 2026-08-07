@@ -100,13 +100,16 @@ class DailyMorningReportPlugin(MaiBotPlugin):
         self.ctx.logger.info("每日早报插件已加载（下次推送 %s）", self.config.basic.push_time)
 
     async def on_unload(self) -> None:
-        if self._scheduler is not None:
-            await self._scheduler.stop()
-            self._scheduler = None
-        await self._close_collectors()
-        if self._cover_manager is not None:
-            await self._cover_manager.close()
-            self._cover_manager = None
+        # 并行关闭后台任务与连接，单个清理失败不阻断其余清理
+        cover_manager = self._cover_manager
+        await asyncio.gather(
+            self._scheduler.stop() if self._scheduler is not None else asyncio.sleep(0),
+            self._close_collectors(),
+            cover_manager.close() if cover_manager is not None else asyncio.sleep(0),
+            return_exceptions=True,
+        )
+        self._scheduler = None
+        self._cover_manager = None
         close_file_handler(self.ctx.logger)  # 关闭独立文件日志，释放句柄
         self.ctx.logger.info("每日早报插件已卸载")
 
@@ -338,11 +341,16 @@ class DailyMorningReportPlugin(MaiBotPlugin):
         images["groups"] = [img for img in images["groups"] if img]
         images["private"] = [img for img in images["private"] if img]
 
+        self.ctx.logger.info(
+            "渲染完成: 群图 %d 张, 私聊图 %d 张",
+            len(images["groups"]), len(images["private"]),
+        )
         return images
 
     async def _render_image(self, html: str, name: str) -> str:
         """调用 ctx.render.html2png 渲染 HTML 为 PNG base64。"""
         try:
+            started = time.perf_counter()
             result = await self.ctx.render.html2png(
                 html,
                 viewport={"width": int(self.config.render.card_width), "height": 800},
@@ -351,13 +359,23 @@ class DailyMorningReportPlugin(MaiBotPlugin):
                 wait_until="load",
                 omit_background=False,
             )
+            elapsed = time.perf_counter() - started
             image_base64 = result.get("image_base64") or ""
             if not image_base64:
-                self.ctx.logger.error("渲染 %s 返回空图片", name)
+                self.ctx.logger.error(
+                    "[渲染] %s 返回空图片: html=%d 字符, 耗时 %.2fs, result_keys=%s",
+                    name, len(html), elapsed, sorted((result or {}).keys()),
+                )
                 return ""
+            self.ctx.logger.info(
+                "[渲染] %s 成功: html=%d 字符, 耗时 %.2fs, 图片 %d 字节",
+                name, len(html), elapsed, len(image_base64),
+            )
             return image_base64
-        except Exception:
-            self.ctx.logger.exception("渲染 %s 异常", name)
+        except Exception as e:
+            self.ctx.logger.exception(
+                "[渲染] %s 异常: %s（html=%d 字符）", name, e, len(html or ""),
+            )
             return ""
 
     async def _collect_covers(self, results: dict[str, CollectorResult]) -> dict[str, str]:

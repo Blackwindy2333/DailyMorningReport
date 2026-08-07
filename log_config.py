@@ -1,11 +1,11 @@
-"""插件日志系统：双通道日志。
+"""插件日志系统：对接官方 SDK 的 ctx.logger，并附加独立滚动文件持久化。
 
-设计：
-- 通道 1：插件原有 logger（SDK 注入的 ctx.logger，自动转发到主进程）——保持不变
-- 通道 2：独立日志文件 data_dir/logs/daily_morning_report.log（滚动 7 天 × 5MB）
+设计（双通道并行输出到同一 logger）：
+- 主通道：SDK 注入的 ``self.ctx.logger``（名称 ``plugin.<plugin_id>``，Runner 自动转发到主进程结构化日志）——日志系统基准
+- 持久化通道：为 ``ctx.logger`` 挂载独立文件 handler，写入 ``data_dir/logs/daily_morning_report.log``
+  （按天时间滚动，保留 7 天），便于本地按 run_id 排查
 
-两个通道通过同一个日志器的 handler 组合并行输出：插件 logger 保持原有链路，
-另加文件 handler 实现独立持久化，互不干扰。
+两个通道共用同一个 logger，互不干扰；文件 handler 由 on_unload 关闭。
 """
 
 from __future__ import annotations
@@ -27,6 +27,9 @@ def setup_plugin_file_logging(
     level: int = logging.INFO,
 ) -> logging.Handler | None:
     """为插件 logger 挂载独立文件 handler（幂等）。
+
+    ``logger`` 应传入 ``self.ctx.logger``（官方 SDK 日志，名称 ``plugin.<plugin_id>``），
+    使其同时具备主进程转发与本地文件持久化能力。
 
     返回文件 handler，供 on_unload 关闭；logger 已挂同源 handler 时返回 None。
     """

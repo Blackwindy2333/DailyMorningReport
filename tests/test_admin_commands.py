@@ -92,7 +92,7 @@ def test_status_masks_sensitive() -> None:
     assert "ai_quota.openrouter = ****" in text
     assert "sk-test" not in text
     assert "admin_qqs = 111、222" in text
-    assert "config_version = 1.3.0" in text
+    assert "config_version = 1.4.0" in text
 
 
 def test_help_text_notes_runtime_only() -> None:

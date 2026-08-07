@@ -1,6 +1,6 @@
 <div align="center">
 
-# 📰 每日早报插件 v1.3.0
+# 📰 每日早报插件 v1.4.0
 
 > 每天定时采集新闻、科技热点、行情财经、影视动漫等数据，渲染为精美长图推送至 QQ 群
 
@@ -102,6 +102,23 @@ git clone https://github.com/Blackwindy2333/DailyMorningReport.git
 | | `fuel_regions` | 油价展示地区列表（支持任意地区名） | `北京` |
 
 > AI 额度四家厂商：`openrouter`、`deepseek`、`kimi`、`siliconflow`。
+
+### 🔑 API 申请指南
+
+以下数据源需要申请 API Key（其余模块均为免费公开源，无需任何 Key）：
+
+| 配置项 | 用途 | 申请地址 | 是否必填 |
+|:-------|:-----|:---------|:---------|
+| `ai_quota.openrouter` | AI 额度（OpenRouter） | [openrouter.ai/settings/keys](https://openrouter.ai/settings/keys) | 选填 |
+| `ai_quota.deepseek` | AI 额度（DeepSeek） | [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys) | 选填 |
+| `ai_quota.kimi` | AI 额度（Kimi） | [platform.moonshot.cn/console/api-keys](https://platform.moonshot.cn/console/api-keys) | 选填 |
+| `ai_quota.siliconflow` | AI 额度（SiliconFlow） | [cloud.siliconflow.cn/account/ak](https://cloud.siliconflow.cn/account/ak) | 选填 |
+| `external_api.rawg_api_key` | 游戏发售（RAWG） | [rawg.io/apidocs](https://rawg.io/apidocs) | 选填（不填则游戏模块跳过） |
+| `external_api.tmdb_api_key` | 电影降级源（TMDB） | [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api) | 选填（豆瓣反爬时自动降级 TMDB） |
+| `external_api.exchangerate_api_key` | 汇率（ExchangeRate-API） | [exchangerate-api.com](https://www.exchangerate-api.com/) | 选填（免费端点免 key） |
+
+> **免费源说明**：新闻/科技/今日提醒/油价/金价（60s-api、IT之家）、DRAM（dramx）、新番（Bangumi）、电影（豆瓣）均为免费公开源，无需 Key。<br>
+> **标注**：每个配置项在 WebUI 表格中已附申请地址，鼠标悬停可查看完整说明。
 
 ---
 
@@ -244,6 +261,23 @@ DailyMorningReport/
 
 <details>
 <summary>点击展开版本历史</summary>
+
+### 版本 1.4.0
+
+**新功能**
+- 内嵌 MiSans 字体（GB2312 子集 woff2，Regular/Medium/Bold/Heavy 4 字重），彻底解决容器无中文字体导致的渲染回退问题
+- 配置项与 README 标注全部 API 申请地址（新增「🔑 API 申请指南」章节）
+
+**Bug 修复**
+- 修复封面下载 SSRF 风险：`covers.py` 下载外部 URL 前校验 scheme 白名单 + 内网 IP 拦截
+- 修复周日获取不到新番数据：Bangumi `/calendar` 的 `weekday.id`（0=周日）与 ISO `isoweekday` 映射修正
+- 修复 `on_unload` 清理中断：改用 `gather(return_exceptions=True)` 并行关闭任务与连接
+- 修复采集异常逃逸：重试捕获所有 `httpx.HTTPError`，避免击穿失败隔离
+- 修复 RAWG key 经 URL query 泄露：改为 `params` 传递 + 日志脱敏
+- 修复 `capabilities` 缺 `render.html2png`/`chat.*` 导致渲染与推送被拒
+
+**其他**
+- 日志系统对接官方 SDK（`ctx.logger`），增强渲染/推送链路日志便于排查
 
 ### 版本 1.3.0
 

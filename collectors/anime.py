@@ -53,7 +53,9 @@ class AnimeCollector(BaseCollector):
                 tz = ZoneInfo(self.config.basic.timezone)
             except (KeyError, ValueError, OSError):
                 tz = FALLBACK_TZ
-            today_weekday = dt.datetime.now(tz).isoweekday()  # 1=周一 ... 7=周日
+            # Bangumi /calendar 的 weekday.id 为 0=周日 ... 6=周六；ISO isoweekday 为 1=周一 ... 7=周日
+            iso_weekday = dt.datetime.now(tz).isoweekday()
+            today_weekday = iso_weekday % 7  # 1→1 ... 6→6, 7→0
             target = None
             for day_group in payload:
                 weekday = (day_group.get("weekday") or {}).get("id")

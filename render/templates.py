@@ -10,6 +10,7 @@ import html as html_mod
 from typing import Any
 
 from ..collectors.base import CollectorResult
+from .fonts import get_font_faces, get_font_stack
 
 
 def _esc(value: Any) -> str:
@@ -38,11 +39,12 @@ def render_page(
 <head>
 <meta charset="utf-8" />
 <style>
+  {get_font_faces()}
   * {{ margin: 0; padding: 0; box-sizing: border-box; }}
   body {{
     width: {card_width}px;
     background: #f4f6f8;
-    font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+    font-family: {get_font_stack()};
     color: #1f2937;
     padding: 20px 16px 28px;
   }}

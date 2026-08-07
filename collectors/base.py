@@ -92,7 +92,9 @@ class BaseCollector:
                         continue
                     raise CollectorError(f"HTTP {response.status_code}: {safe_url}")
                 return response
-            except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout) as exc:
+            # 捕所有 httpx 网络/协议异常（ConnectError/Timeout/TooManyRedirects/ProtocolError 等），
+            # 统一归一化为 CollectorError，避免裸抛击穿失败隔离
+            except httpx.HTTPError as exc:
                 if attempt < self._retry_count - 1:
                     await asyncio.sleep(self._retry_interval * (2**attempt))
                     continue

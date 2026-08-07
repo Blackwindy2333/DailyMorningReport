@@ -15,7 +15,7 @@ class PluginSection(PluginConfigBase):
     __ui_icon__ = "info"
     __ui_order__ = 0
 
-    config_version: str = Field(default="1.3.0", description="配置版本")
+    config_version: str = Field(default="1.4.0", description="配置版本")
 
 
 class BasicSection(PluginConfigBase):
@@ -50,10 +50,22 @@ class AiQuotaSection(PluginConfigBase):
     __ui_icon__ = "account_balance_wallet"
     __ui_order__ = 3
 
-    openrouter: str = Field(default="", description="OpenRouter API Key（留空则跳过该厂商）")
-    deepseek: str = Field(default="", description="DeepSeek API Key（留空则跳过该厂商）")
-    kimi: str = Field(default="", description="Kimi API Key（留空则跳过该厂商）")
-    siliconflow: str = Field(default="", description="SiliconFlow API Key（留空则跳过该厂商）")
+    openrouter: str = Field(
+        default="",
+        description="OpenRouter API Key（留空则跳过该厂商）。申请：https://openrouter.ai/settings/keys",
+    )
+    deepseek: str = Field(
+        default="",
+        description="DeepSeek API Key（留空则跳过该厂商）。申请：https://platform.deepseek.com/api_keys",
+    )
+    kimi: str = Field(
+        default="",
+        description="Kimi API Key（留空则跳过该厂商）。申请：https://platform.moonshot.cn/console/api-keys",
+    )
+    siliconflow: str = Field(
+        default="",
+        description="SiliconFlow API Key（留空则跳过该厂商）。申请：https://cloud.siliconflow.cn/account/ak",
+    )
 
 
 class ExternalApiSection(PluginConfigBase):
@@ -63,9 +75,18 @@ class ExternalApiSection(PluginConfigBase):
     __ui_icon__ = "vpn_key"
     __ui_order__ = 4
 
-    exchangerate_api_key: str = Field(default="", description="ExchangeRate-API Key（可留空，免费端点免 key）")
-    rawg_api_key: str = Field(default="", description="RAWG API Key（游戏发售模块）")
-    tmdb_api_key: str = Field(default="", description="TMDB API Key（豆瓣反爬时的电影降级源，可留空）")
+    exchangerate_api_key: str = Field(
+        default="",
+        description="ExchangeRate-API Key（汇率，可留空，免费端点免 key）。申请：https://www.exchangerate-api.com/",
+    )
+    rawg_api_key: str = Field(
+        default="",
+        description="RAWG API Key（游戏发售模块）。申请：https://rawg.io/apidocs",
+    )
+    tmdb_api_key: str = Field(
+        default="",
+        description="TMDB API Key（豆瓣反爬时的电影降级源，可留空）。申请：https://www.themoviedb.org/settings/api",
+    )
 
 
 class RenderSection(PluginConfigBase):

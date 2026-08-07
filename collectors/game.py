@@ -44,10 +44,14 @@ class GameCollector(BaseCollector):
         try:
             today = dt.date.today()
             end = today + dt.timedelta(days=self._days)
-            url = (
-                f"{RAWG_API_URL}?key={api_key}&dates={today.isoformat()},{end.isoformat()}&ordering=-added&page_size=10"
-            )
-            payload = await self.fetch_json(url)
+            # key 经 params 传递（写完 URL 后由 _safe_url 脱敏，避免 query 泄露）
+            params = {
+                "key": api_key,
+                "dates": f"{today.isoformat()},{end.isoformat()}",
+                "ordering": "-added",
+                "page_size": 10,
+            }
+            payload = await self.fetch_json(RAWG_API_URL, params=params)
             results = payload.get("results") or []
             games = []
             for item in results:
