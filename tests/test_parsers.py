@@ -384,6 +384,7 @@ async def test_movie_tmdb_skipped_without_key(config, mock_logger) -> None:
 
 @pytest.mark.asyncio
 async def test_game_parse(config, mock_logger) -> None:
+    config.render.game_source = "rawg"  # 固定 RAWG，避免 auto 先走 epic 真实网络
     config.external_api.rawg_api_key = "test-key"
     collector = GameCollector(config, mock_logger)
     _install(collector, json_resp=RAWG_GAMES)
@@ -397,6 +398,7 @@ async def test_game_parse(config, mock_logger) -> None:
 
 @pytest.mark.asyncio
 async def test_game_skipped_without_key(config, mock_logger) -> None:
+    config.render.game_source = "rawg"  # 固定 RAWG，避免 auto 先走 epic 真实网络
     collector = GameCollector(config, mock_logger)
     result = await collector.collect()
     assert result.status == "error"
