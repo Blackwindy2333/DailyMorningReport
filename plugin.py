@@ -88,7 +88,9 @@ class DailyMorningReportPlugin(MaiBotPlugin):
         self._cover_manager = CoverManager(
             self.ctx.paths.runtime_dir, self.ctx.logger, self.config.basic.request_timeout
         )
-        self._archive = ArchiveManager(self.ctx.paths.data_dir, self.ctx.logger)
+        self._archive = ArchiveManager(
+            self.ctx.paths.data_dir, self.ctx.logger, timezone=self.config.basic.timezone
+        )
         self._scheduler = DailyScheduler(
             timezone=self.config.basic.timezone,
             push_time=self.config.basic.push_time,

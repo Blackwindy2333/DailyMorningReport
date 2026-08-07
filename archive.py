@@ -17,24 +17,31 @@ import json
 import logging
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 
 class ArchiveManager:
     """早报存档管理器。"""
 
-    def __init__(self, data_dir: Path, logger: logging.Logger, max_files: int = 30) -> None:
+    def __init__(self, data_dir: Path, logger: logging.Logger, max_files: int = 30,
+                 timezone: str = "Asia/Shanghai") -> None:
         self._archive_dir = data_dir / "archive"
         self._logger = logger
         self._max_files = max_files
+        try:
+            self._tz = ZoneInfo(timezone)
+        except (KeyError, ValueError, OSError):
+            self._tz = ZoneInfo("Asia/Shanghai")
 
     def save(self, results: dict[str, Any]) -> None:
         """保存当日早报数据（含各模块状态）。"""
         try:
             self._archive_dir.mkdir(parents=True, exist_ok=True)
-            today = dt.date.today().isoformat()
+            now = dt.datetime.now(self._tz)
+            today = now.date().isoformat()
             payload = {
                 "date": today,
-                "created_at": dt.datetime.now().astimezone().isoformat(timespec="seconds"),
+                "created_at": now.isoformat(timespec="seconds"),
                 "modules": {module_id: result.data for module_id, result in results.items()},
                 "status": {module_id: result.status for module_id, result in results.items()},
             }
@@ -42,7 +49,7 @@ class ArchiveManager:
             path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
             self._prune()
             self._logger.info("早报已存档: %s", path)
-        except OSError as exc:
+        except Exception as exc:  # 兜底：JSON 序列化等异常不中断整体
             self._logger.warning("早报存档失败: %s", exc)
 
     def _prune(self) -> None:
