@@ -1,6 +1,6 @@
 <div align="center">
 
-# 📰 每日早报插件 v1.4.1
+# 📰 每日早报插件 v1.5.0
 
 > 每天定时采集新闻、科技热点、行情财经、影视动漫等数据，渲染为精美长图推送至 QQ 群
 
@@ -98,6 +98,7 @@ git clone https://github.com/Blackwindy2333/DailyMorningReport.git
 | | `covers_enabled` | 是否加载封面图 | 开 |
 | | `news_count` / `tech_count` | 新闻 / 科技条数 | `10` / `15` |
 | | `game_days` | 游戏发售前瞻天数 | `7` |
+| | `game_source` | 游戏发售数据源：auto（默认，epic 优先降级 rawg）/ rawg / epic | `auto` |
 | | `fx_currencies` | 汇率展示币种列表 | `USD/EUR/JPY/HKD/GBP` |
 | | `fuel_regions` | 油价展示地区列表（支持任意地区名） | `北京` |
 
@@ -113,7 +114,7 @@ git clone https://github.com/Blackwindy2333/DailyMorningReport.git
 | `ai_quota.deepseek` | AI 额度（DeepSeek） | [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys) | 选填 |
 | `ai_quota.kimi` | AI 额度（Kimi） | [platform.moonshot.cn/console/api-keys](https://platform.moonshot.cn/console/api-keys) | 选填 |
 | `ai_quota.siliconflow` | AI 额度（SiliconFlow） | [cloud.siliconflow.cn/account/ak](https://cloud.siliconflow.cn/account/ak) | 选填 |
-| `external_api.rawg_api_key` | 游戏发售（RAWG） | [rawg.io/apidocs](https://rawg.io/apidocs) | 选填（不填则游戏模块跳过） |
+| `external_api.rawg_api_key` | 游戏发售（RAWG，仅当 `game_source=rawg` 或 auto 降级时用） | [rawg.io/apidocs](https://rawg.io/apidocs) | 选填（默认 `game_source=auto` 时优先用免 key 的 EPIC 源） |
 | `external_api.tmdb_api_key` | 电影降级源（TMDB） | [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api) | 选填（豆瓣反爬时自动降级 TMDB） |
 | `external_api.exchangerate_api_key` | 汇率（ExchangeRate-API） | [exchangerate-api.com](https://www.exchangerate-api.com/) | 选填（免费端点免 key） |
 
@@ -147,7 +148,7 @@ DailyMorningReport/
 │   ├── ai_quota.py         # AI 额度（四家厂商）
 │   ├── anime.py            # 新番（Bangumi）
 │   ├── movie.py            # 电影（豆瓣 + TMDB 降级）
-│   └── game.py             # 游戏发售（RAWG）
+│   └── game.py             # 游戏发售（RAWG + EPIC 多源，auto 降级）
 ├── render/                 # 渲染模块（SDK html2png）
 │   ├── templates.py        # 3 组 HTML 模板（禁用模块卡片跳过）
 │   └── covers.py           # 封面下载（并发限流 + data URL 内嵌）
@@ -173,7 +174,7 @@ DailyMorningReport/
 | 昨日 AI 消费 | MaiBot 本机统计 | 需统计能力 |
 | 新番 | api.bgm.tv/calendar | 官方 API |
 | 电影 | movie.douban.com → api.themoviedb.org | 豆瓣反爬时自动降级 TMDB |
-| 游戏 | api.rawg.io | 需 key |
+| 游戏 | api.rawg.io / Epic Store | 默认 auto：EPIC 免 key 国内直连，可选 RAWG（需 key） |
 | AI 额度 | 四家官方 API | 需 key |
 
 ### 指令
@@ -207,7 +208,7 @@ DailyMorningReport/
 ## 🚀 快速上手
 
 1. 将插件放入 MaiBot `plugins/` 目录并启用，填写推送目标群 `target_groups`。
-2. 可选：填写 `admin_qqs` 接收 AI 额度私聊；填写 `rawg_api_key` 启用游戏模块。
+2. 可选：填写 `admin_qqs` 接收 AI 额度私聊；游戏模块默认 `game_source=auto` 用免 key EPIC 源，无需 key 即可用。
 3. 默认每天 08:00 自动推送；也可在群里发送 `/morning_report` 手动生成一次。
 4. 推送内容为 3 张长图：资讯速览、行情财经、文娱生活。
 
@@ -229,7 +230,7 @@ DailyMorningReport/
 
 ### Q4: 游戏模块不显示？
 
-✅ 检查 `rawg_api_key` 是否填写。
+✅ 检查 `game_source` 配置：默认 `auto` 用免 key EPIC 源（国内直连）；若指定 `rawg`，需填 `rawg_api_key` 且网络可访问 RAWG。
 
 ### Q5: 定时推送不触发？
 
@@ -275,6 +276,11 @@ DailyMorningReport/
 - 修复封面收集空列表/None 安全回退
 - 修复封面类型白名单排除 SVG（仅 jpg/png/webp/gif）
 - 修复封面同 URL 并发重复下载（in-flight 去重）
+
+### 版本 1.5.0
+
+**新功能**
+- 游戏发售多数据源：新增 EPIC 免 key 源（国内直连），支持 `render.game_source` 配置（`auto` 默认，epic 优先降级 rawg / `rawg` / `epic`），解决 RAWG 国内需代理问题
 
 ### 版本 1.4.0
 
@@ -332,7 +338,7 @@ DailyMorningReport/
 - 12 项模块独立开关 + 失败隔离 + 自动重试（指数退避）
 - 今日提醒（内置公历节日 + 历史上的今天）
 - 昨日 AI 消费汇总（token_trend 统计能力）
-- 电影双源（豆瓣 + TMDB 降级）、新番（Bangumi）、游戏发售（RAWG）
+- 电影双源（豆瓣 + TMDB 降级）、新番（Bangumi）、游戏发售（RAWG + EPIC 多源）
 - 汇率 / 多地区油价 / 金价 / DRAM 价格
 - AI 额度四家（OpenRouter/DeepSeek/Kimi/SiliconFlow），默认私发管理员
 - 早报存档（保留 30 天自动清理）

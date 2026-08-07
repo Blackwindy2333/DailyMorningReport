@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "id": "com.maibot.daily-morning-report",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "name": "每日早报",
   "description": "每日定时采集新闻、科技热点、硬件价格、汇率、AI额度、油价金价、影视动漫、游戏发售等数据，渲染为精美图片推送至QQ群。",
   "author": {

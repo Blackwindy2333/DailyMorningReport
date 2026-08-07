@@ -4,7 +4,7 @@ from DailyMorningReport.config_models import DailyMorningReportConfig
 
 
 def test_default_values(config: DailyMorningReportConfig) -> None:
-    assert config.plugin.config_version == "1.4.1"
+    assert config.plugin.config_version == "1.5.0"
     assert config.basic.enabled is True
     assert config.basic.push_time == "08:00"
     assert config.basic.timezone == "Asia/Shanghai"
