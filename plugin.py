@@ -100,6 +100,14 @@ class DailyMorningReportPlugin(MaiBotPlugin):
         self.ctx.logger.info("每日早报插件已加载（下次推送 %s）", self.config.basic.push_time)
 
     async def on_unload(self) -> None:
+        # 等待进行中的 _execute 完成，避免中途关闭采集器导致悬浮推送
+        if self._running_lock.locked():
+            self.ctx.logger.info("等待进行中的早报生成完成后再卸载...")
+            try:
+                await asyncio.wait_for(self._running_lock.acquire(), timeout=120)
+                self._running_lock.release()
+            except asyncio.TimeoutError:
+                self.ctx.logger.warning("等待早报生成超时，强制卸载")
         # 并行关闭后台任务与连接，单个清理失败不阻断其余清理
         cover_manager = self._cover_manager
         await asyncio.gather(
